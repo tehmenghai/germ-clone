@@ -79,10 +79,6 @@ export default function HomePage() {
 
   const hasActiveTopic = currentQuery.length > 0;
 
-  if (!profile) {
-    return <ProfilePicker onSelect={setProfile} />;
-  }
-
   return (
     <div
       style={{
@@ -91,8 +87,15 @@ export default function HomePage() {
         height: "100vh",
         overflow: "hidden",
         background: "var(--bg)",
+        position: "relative",
       }}
     >
+      {/* Single rain layer behind all screens — hidden in clinical mode by the component */}
+      <DigitalRain />
+
+      {!profile && <ProfilePicker onSelect={setProfile} />}
+      {profile && <>
+
       <Header
         viewMode={viewMode}
         onViewMode={setViewMode}
@@ -143,6 +146,7 @@ export default function HomePage() {
         events={events}
         activeIdx={activeIdx}
       />
+      </>}
     </div>
   );
 }
@@ -181,7 +185,7 @@ function RealityLayout({
         position: "relative",
       }}
     >
-      {/* Left — conversation column */}
+      {/* Left — conversation column (transparent so rain shows through empty space) */}
       <Convo
         msgs={msgs}
         phase={phase}
@@ -194,12 +198,13 @@ function RealityLayout({
         onOpenTrace={onRailOpen}
       />
 
-      {/* Right — ML workspace (hidden <920px) */}
+      {/* Right — ML workspace */}
       <div
         style={{
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          borderLeft: "1px solid var(--line-soft)",
         }}
       >
         <MLWorkspace query={currentQuery} />
@@ -256,14 +261,11 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
         position: "relative",
       }}
     >
-      <DigitalRain />
-
       {/* Coverage map bar */}
       <div
         style={{
           flexShrink: 0,
           position: "relative",
-          zIndex: 2,
           padding: "6px 18px",
           background: "color-mix(in oklab, var(--bg) 80%, transparent)",
           backdropFilter: "blur(14px)",
@@ -315,10 +317,9 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
           gridTemplateColumns: "minmax(380px, 44fr) 56fr",
           overflow: "hidden",
           position: "relative",
-          zIndex: 2,
         }}
       >
-        {/* Left — terminal */}
+        {/* Left — terminal (transparent; rain shows through empty space) */}
         <div
           style={{
             display: "flex",

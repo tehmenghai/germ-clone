@@ -51,8 +51,6 @@ export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        borderLeft: "1px solid var(--line-soft)",
-        background: "color-mix(in oklab, var(--panel) 35%, transparent)",
         overflow: "hidden",
       }}
     >

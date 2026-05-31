@@ -25,7 +25,7 @@ export function DigitalRain() {
     const COL_W = 18;
     let drops: Drop[] = [];
     let animId: number;
-    let frameCount = 0; // used for 50% speed reduction via frame-skip
+    let frameCount = 0; // used for frame-skip speed control
 
     function resize() {
       if (!canvas) return;
@@ -37,7 +37,7 @@ export function DigitalRain() {
       const cols = Math.floor(canvas.offsetWidth / COL_W);
       drops = Array.from({ length: cols }, () => ({
         y: -Math.floor(Math.random() * 30),
-        speed: 0.3 + Math.random() * 0.5,
+        speed: 0.15 + Math.random() * 0.25,
         length: 8 + Math.floor(Math.random() * 20),
       }));
 
@@ -70,14 +70,13 @@ export function DigitalRain() {
       if (isLight()) { animId = requestAnimationFrame(draw); return; }
 
       frameCount++;
-      // 50% speed: only advance drops every other frame
-      const advance = frameCount % 2 === 0;
+      // advance drops every 3rd frame (~20fps effective)
+      const advance = frameCount % 3 === 0;
 
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
 
-      // Slower fade so trail lingers longer
-      ctx.fillStyle = "rgba(0,0,0,0.05)";
+      ctx.fillStyle = "rgba(0,0,0,0.10)";
       ctx.fillRect(0, 0, w, h);
 
       ctx.font = `${FS}px "JetBrains Mono", monospace`;
@@ -87,19 +86,19 @@ export function DigitalRain() {
         const x = i * COL_W;
         const headY = Math.floor(drop.y) * FS;
 
-        // Trail — dimmer alpha (0.28 max)
+        // Trail — capped at 0.16 max alpha
         for (let t = 1; t < drop.length; t++) {
           const ty = headY - t * FS;
           if (ty < 0) continue;
           const fade = 1 - t / drop.length;
-          const alpha = Math.max(0.02, fade * 0.28);
+          const alpha = Math.max(0.01, fade * 0.16);
           ctx.fillStyle = `rgba(0,180,70,${alpha.toFixed(2)})`;
           ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], x, ty);
         }
 
-        // Leading char — dimmer than before (was #afffce/#00e050)
+        // Leading char — toned down
         if (headY >= 0 && headY <= h) {
-          ctx.fillStyle = Math.random() > 0.5 ? "rgba(0,210,90,0.65)" : "rgba(0,160,60,0.55)";
+          ctx.fillStyle = Math.random() > 0.5 ? "rgba(0,200,80,0.38)" : "rgba(0,150,55,0.30)";
           ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], x, headY);
         }
 
@@ -110,7 +109,7 @@ export function DigitalRain() {
         // Reset when head exits bottom
         if (headY > h + drop.length * FS) {
           drop.y = -Math.floor(Math.random() * 20);
-          drop.speed = 0.3 + Math.random() * 0.5;
+          drop.speed = 0.15 + Math.random() * 0.25;
           drop.length = 8 + Math.floor(Math.random() * 20);
         }
       }

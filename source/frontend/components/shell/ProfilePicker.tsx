@@ -31,7 +31,7 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
   return (
     <div
       className="flex flex-col items-center justify-center gap-6"
-      style={{ minHeight: "100vh", background: "var(--bg)" }}
+      style={{ minHeight: "100vh", background: "transparent", position: "relative", zIndex: 1 }}
     >
       <div
         className="flex flex-col gap-5"
