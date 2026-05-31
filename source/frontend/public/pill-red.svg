@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 16" fill="none">
+  <defs>
+    <!-- Red pill body gradient: left half deep red, right half brighter red -->
+    <linearGradient id="redBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#8b0000"/>
+      <stop offset="45%"  stop-color="#cc2200"/>
+      <stop offset="100%" stop-color="#ff4422"/>
+    </linearGradient>
+    <!-- Specular highlight -->
+    <linearGradient id="redShine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="55%"  stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Shadow at bottom -->
+    <linearGradient id="redShadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.30"/>
+    </linearGradient>
+    <filter id="redGlow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Pill body -->
+  <rect x="1" y="1" width="34" height="14" rx="7" fill="url(#redBody)" filter="url(#redGlow)"/>
+  <!-- Shadow layer -->
+  <rect x="1" y="1" width="34" height="14" rx="7" fill="url(#redShadow)"/>
+  <!-- Specular highlight (upper half only) -->
+  <rect x="3" y="2" width="30" height="6" rx="4" fill="url(#redShine)"/>
+  <!-- Centre seam line -->
+  <line x1="18" y1="1" x2="18" y2="15" stroke="#5c0000" stroke-width="0.8" opacity="0.6"/>
+  <!-- Outer edge stroke -->
+  <rect x="1" y="1" width="34" height="14" rx="7" fill="none" stroke="#7a0000" stroke-width="0.7" opacity="0.7"/>
+</svg>

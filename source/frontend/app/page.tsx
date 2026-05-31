@@ -12,10 +12,11 @@ import { AnswerProse } from "@/components/workspace/AnswerProse";
 import { ConsoleChips } from "@/components/workspace/ConsoleChips";
 import { VizPanel } from "@/components/viz/VizPanel";
 import { mockStream, type StageEvent } from "@/lib/mock-stream";
+import { DigitalRain } from "@/components/fx/DigitalRain";
 
 export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("reality");
+  const [viewMode, setViewMode] = useState<ViewMode>("red-pill");
   const [difficulty, setDifficulty] = useState<Difficulty>("standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -70,7 +71,7 @@ export default function HomePage() {
 
       {/* Body */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        {viewMode === "reality" ? (
+        {viewMode === "red-pill" ? (
           <RealityLayout
             events={events}
             isRunning={isRunning}
@@ -139,16 +140,24 @@ function MatrixLayout({ events, isRunning, query }: {
         flexDirection: "column",
         overflow: "hidden",
         background: "var(--bg)",
+        position: "relative",
       }}
     >
+      {/* Digital rain — fixed full-viewport canvas behind content */}
+      <DigitalRain />
+
       {/* Coverage bar — pinned to top once eval fires */}
       {coverage !== null && (
         <div
           style={{
             flexShrink: 0,
+            position: "relative",
+            zIndex: 2,
             padding: "6px 20px",
-            background: "var(--bg-2)",
-            borderBottom: "1px solid var(--line)",
+            background: "var(--glass-bg)",
+            backdropFilter: `blur(var(--glass-blur))`,
+            WebkitBackdropFilter: `blur(var(--glass-blur))`,
+            borderBottom: "1px solid var(--line-soft)",
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -197,6 +206,8 @@ function MatrixLayout({ events, isRunning, query }: {
           overflowY: "auto",
           padding: "16px 20px",
           fontFamily: "var(--font-mono, monospace)",
+          position: "relative",
+          zIndex: 2,
         }}
       >
         {/* Terminal header */}
@@ -232,6 +243,7 @@ function MatrixLayout({ events, isRunning, query }: {
                 <span
                   key={i}
                   title={ev.detail ?? ev.verdict ?? ev.stage}
+                  className="stage-chip"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -242,7 +254,7 @@ function MatrixLayout({ events, isRunning, query }: {
                     fontSize: "var(--font-label)",
                     color: statusColor,
                     letterSpacing: "0.05em",
-                    background: "transparent",
+                    background: `${statusColor}10`,
                   }}
                 >
                   {ev.status === "done" && !ev.verdict?.startsWith("BELOW") ? "✓" : ev.status === "active" ? "▶" : "○"}
@@ -289,13 +301,18 @@ function MatrixLayout({ events, isRunning, query }: {
           )}
         </div>
 
-        {/* Answer — same components as Reality mode */}
+        {/* Answer — glass panel */}
         {composeEvent?.answer_md && (
           <div
             style={{
               marginTop: 4,
-              paddingTop: 16,
-              borderTop: "1px solid var(--line)",
+              padding: "16px 18px",
+              borderRadius: "var(--r-lg)",
+              border: "1px solid var(--line-soft)",
+              background: "var(--glass-bg)",
+              backdropFilter: `blur(var(--glass-blur))`,
+              WebkitBackdropFilter: `blur(var(--glass-blur))`,
+              boxShadow: "var(--shadow)",
             }}
           >
             <AnswerProse
@@ -307,7 +324,17 @@ function MatrixLayout({ events, isRunning, query }: {
         )}
 
         {composeEvent && (
-          <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              marginTop: 10,
+              borderRadius: "var(--r-lg)",
+              border: "1px solid var(--line-soft)",
+              background: "var(--glass-bg)",
+              backdropFilter: `blur(var(--glass-blur))`,
+              WebkitBackdropFilter: `blur(var(--glass-blur))`,
+              overflow: "hidden",
+            }}
+          >
             <VizPanel query={query} />
           </div>
         )}

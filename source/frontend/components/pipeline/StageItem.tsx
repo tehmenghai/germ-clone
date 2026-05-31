@@ -2,44 +2,24 @@
 
 import type { StageEvent, StageStatus } from "@/lib/mock-stream";
 
-const STAGE_LABELS: Record<string, string> = {
-  route:     "Route",
-  rewrite:   "Rewrite",
-  retrieve1: "Retrieve ①",
-  react:     "ReAct",
-  reflect:   "Reflect",
-  evaluate1: "Evaluate ①",
-  retrieve2: "Retrieve ②",
-  evaluate2: "Evaluate ②",
-  compose:   "Compose",
+// Icon + display name matching handoff pipeline.jsx
+const STAGE_META: Record<string, { icon: string; name: string }> = {
+  route:     { icon: "⟁", name: "Route" },
+  rewrite:   { icon: "✎", name: "Rewrite" },
+  retrieve1: { icon: "⛁", name: "Retrieve · hop 1" },
+  react:     { icon: "◈", name: "ReAct" },
+  reflect:   { icon: "◎", name: "Reflect / Correct" },
+  evaluate1: { icon: "▦", name: "Evaluate · pass 1" },
+  retrieve2: { icon: "⛁", name: "Re-retrieve · hop 2" },
+  evaluate2: { icon: "▦", name: "Evaluate · pass 2" },
+  compose:   { icon: "✦", name: "Compose answer" },
 };
 
-function statusColor(status: StageStatus): string {
-  switch (status) {
-    case "active":  return "var(--amber)";
-    case "done":    return "var(--green)";
-    case "error":   return "var(--red)";
-    default:        return "var(--txt-faint)";
-  }
-}
-
-function StatusDot({ status }: { status: StageStatus }) {
-  const color = statusColor(status);
-  const isActive = status === "active";
-  return (
-    <span
-      aria-label={status}
-      style={{
-        display: "inline-block",
-        width: 7,
-        height: 7,
-        borderRadius: "50%",
-        background: color,
-        boxShadow: isActive ? `0 0 6px ${color}` : undefined,
-        flexShrink: 0,
-      }}
-    />
-  );
+function stageClass(event: StageEvent): "pending" | "active" | "done" | "reloop" {
+  if (event.status === "active") return "active";
+  if (event.status === "done" && event.verdict?.startsWith("BELOW")) return "reloop";
+  if (event.status === "done") return "done";
+  return "pending";
 }
 
 interface StageItemProps {
@@ -48,41 +28,74 @@ interface StageItemProps {
 }
 
 export function StageItem({ event, isLast }: StageItemProps) {
-  const label = STAGE_LABELS[event.stage] ?? event.stage;
+  const meta = STAGE_META[event.stage] ?? { icon: "○", name: event.stage };
+  const cls = stageClass(event);
+
+  const iconBorderColor = cls === "active" ? "var(--green-deep)"
+    : cls === "reloop" ? "color-mix(in oklab, var(--amber) 50%, var(--line))"
+    : "var(--line)";
+  const iconColor = cls === "active" ? "var(--green)"
+    : cls === "done" ? "var(--green)"
+    : cls === "reloop" ? "var(--amber)"
+    : "var(--txt-faint)";
+  const iconGlow = cls === "active" ? "var(--glow)" : cls === "done" ? undefined : undefined;
+  const statusText = cls === "active" ? "running" : cls === "done" ? "done" : cls === "reloop" ? "reloop" : "";
+  const statusColor = cls === "active" ? "var(--amber)"
+    : cls === "done" ? "var(--green)"
+    : cls === "reloop" ? "var(--amber)"
+    : "var(--txt-faint)";
 
   return (
     <div
       role="listitem"
-      className="flex flex-col gap-0.5"
       style={{
-        padding: "7px 12px",
+        padding: "11px 16px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
+        opacity: cls === "pending" ? 0.4 : 1,
       }}
     >
-      <div className="flex items-center gap-2">
-        <StatusDot status={event.status} />
-        <span
-          className="font-mono font-medium"
-          style={{ fontSize: "var(--font-base)", color: statusColor(event.status) }}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--txt)" }}>
+        {/* Icon badge */}
+        <div
+          aria-hidden
+          style={{
+            width: 24, height: 24, borderRadius: 7,
+            display: "grid", placeItems: "center",
+            fontSize: 12,
+            background: "var(--panel-2)",
+            border: `1px solid ${iconBorderColor}`,
+            color: iconColor,
+            flexShrink: 0,
+            boxShadow: iconGlow,
+            transition: "border-color 0.3s, color 0.3s",
+          }}
         >
-          {label}
-        </span>
+          {meta.icon}
+        </div>
+
+        <span style={{ flex: 1 }}>{meta.name}</span>
+
+        {statusText && (
+          <span style={{ fontSize: 9, letterSpacing: "1px", color: statusColor, textTransform: "uppercase" }}>
+            {statusText}
+          </span>
+        )}
       </div>
 
+      {/* Detail line */}
       {event.detail && (
-        <p className="font-mono" style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)", paddingLeft: 15 }}>
+        <p style={{ fontSize: 10.5, color: "var(--txt-faint)", lineHeight: 1.5, paddingLeft: 34, marginTop: 6 }}>
           {event.detail}
         </p>
       )}
 
+      {/* Eval scores */}
       {event.scores && (
-        <div className="flex gap-3 font-mono" style={{ fontSize: "var(--font-label)", paddingLeft: 15, color: "var(--txt-dim)" }}>
-          <span>F {(event.scores.f * 100).toFixed(0)}</span>
-          <span>R {(event.scores.r * 100).toFixed(0)}</span>
-          <span>C {(event.scores.c * 100).toFixed(0)}</span>
+        <div style={{ fontSize: 10.5, color: "var(--txt-faint)", paddingLeft: 34, marginTop: 4 }}>
+          faithful {event.scores.f.toFixed(2)} · relevant {event.scores.r.toFixed(2)} · complete {event.scores.c.toFixed(2)}
           {event.verdict && (
-            <span style={{ color: event.verdict === "PASS" ? "var(--green)" : "var(--amber)" }}>
-              {event.verdict}
+            <span style={{ marginLeft: 6, color: event.verdict.startsWith("PASS") ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
+              → {event.verdict}
             </span>
           )}
         </div>

@@ -52,8 +52,42 @@ html, body {
   vertical-align: super;
   line-height: 0;
   padding: 0 1px;
+  transition: text-shadow 0.15s;
 }
-.cite-ref:hover { text-decoration: underline; }
+.cite-ref:hover {
+  text-decoration: underline;
+  text-shadow: 0 0 8px var(--green);
+}
+
+/* Wordmark glow — matrix only */
+.wordmark-germ {
+  text-shadow: 0 0 10px oklch(0.88 0.21 150 / 0.60);
+  transition: text-shadow 0.2s;
+}
+:root[data-theme="clinical"] .wordmark-germ {
+  text-shadow: none;
+}
+
+/* Settings drawer animations (referenced from SettingsDrawer inline styles) */
+@keyframes slidein {
+  from { transform: translateX(40px); opacity: 0.4; }
+}
+@keyframes slideup {
+  from { transform: translateY(60px); opacity: 0.3; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+}
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+/* Glass panels (Blue Pill / Matrix mode) */
+.glass {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
 
 /* Focus ring for keyboard accessibility */
 button:focus-visible {
@@ -63,4 +97,24 @@ button:focus-visible {
 a:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 2px;
+}
+
+/* Scan line overlay for Matrix/Blue Pill mode */
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Stage chip hover glow */
+.stage-chip {
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.stage-chip:hover {
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* Thinking pulse animation */
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%           { opacity: 1;   transform: scale(1);   }
 }

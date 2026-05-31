@@ -17,8 +17,8 @@ export function PipelineRail({ events, isRunning }: PipelineRailProps) {
       aria-label="Pipeline stages"
       style={{
         width: "var(--rail-w)",
-        borderRight: "1px solid var(--line)",
-        background: "var(--panel)",
+        borderRight: "1px solid var(--line-soft)",
+        background: "color-mix(in oklab, var(--panel) 45%, transparent)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -26,10 +26,11 @@ export function PipelineRail({ events, isRunning }: PipelineRailProps) {
     >
       {/* Rail header */}
       <div
-        className="flex items-center justify-between px-3"
+        className="flex items-center justify-between"
         style={{
           height: 38,
-          borderBottom: "1px solid var(--line)",
+          padding: "0 16px",
+          borderBottom: "1px solid var(--line-soft)",
           flexShrink: 0,
         }}
       >
@@ -63,7 +64,7 @@ export function PipelineRail({ events, isRunning }: PipelineRailProps) {
 
       {/* Gauge — shown once we have eval scores */}
       {finalEval?.scores && (
-        <div style={{ padding: "10px 12px", borderTop: "1px solid var(--line)", flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, borderTop: "1px solid var(--line-soft)" }}>
           <Gauge
             scores={finalEval.scores}
             pass={finalEval.verdict?.startsWith("PASS") ?? false}
