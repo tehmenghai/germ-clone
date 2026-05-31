@@ -3,7 +3,7 @@
 import { type Theme, getTheme, setTheme } from "@/lib/theme";
 import { useEffect, useState } from "react";
 
-export type ViewMode = "red-pill" | "blue-pill";
+export type ViewMode = "reading" | "console";
 export type Difficulty = "eli5" | "standard" | "academia";
 
 interface HeaderProps {
@@ -12,9 +12,12 @@ interface HeaderProps {
   difficulty: Difficulty;
   onDifficulty: (d: Difficulty) => void;
   onSettings: () => void;
+  ragPipeActive?: boolean;
+  onRagPipe?: () => void;
+  hasActiveTopic?: boolean;
 }
 
-export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings }: HeaderProps) {
+export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, ragPipeActive, onRagPipe, hasActiveTopic }: HeaderProps) {
   const [theme, setThemeState] = useState<Theme>("matrix");
 
   useEffect(() => {
@@ -44,36 +47,32 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
     >
       {/* Brand — avatar + wordmark */}
       <div className="flex items-center" style={{ gap: 11 }}>
-        <div
+        {/* Neo face logo — theme-invariant, matches browser favicon */}
+        <svg
           aria-hidden
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 700,
-            fontSize: 15,
-            color: "var(--on-green)",
-            background: "linear-gradient(160deg, var(--green-2), var(--green-deep))",
-            boxShadow: "var(--glow)",
-            position: "relative",
-            flexShrink: 0,
-          }}
+          width="34"
+          height="34"
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ flexShrink: 0 }}
         >
-          g
-          {/* Online indicator dot */}
-          <span style={{
-            position: "absolute",
-            right: -2,
-            bottom: -2,
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: "var(--green)",
-            border: "2px solid var(--bg)",
-          }} />
-        </div>
+          <rect width="32" height="32" rx="7" fill="#050f07"/>
+          {/* Head — organic irregular beziers, sketch-like */}
+          <path d="M16 4.8 C13.1 4.6 10.3 6.2 9.3 8.7 C8.5 10.7 8.7 12.4 8.1 14.6 C7.6 16.8 7.9 18.6 9.3 20.2 C10.6 21.7 12.1 23.0 13.2 24.6 C14.1 25.8 14.9 26.7 16 26.9 C17.1 26.7 17.9 25.9 18.8 24.7 C19.9 23.2 21.5 21.8 22.7 20.3 C24.1 18.6 24.4 16.9 23.9 14.7 C23.4 12.5 23.5 10.8 22.7 8.8 C21.7 6.3 18.9 4.9 16 4.8Z" stroke="#00e050" strokeWidth="1.05" strokeLinejoin="round" opacity={0.88}/>
+          {/* Nose hint */}
+          <path d="M15.6 16.8 Q16 17.4 16.4 16.9" stroke="#00e050" strokeWidth="0.65" strokeLinecap="round" opacity={0.45}/>
+          {/* Left lens — slightly irregular */}
+          <path d="M8.8 13.2 Q9.2 11.9 10.7 11.8 L14.4 11.75 Q15.1 11.85 15.3 12.7 L15.25 14.85 Q15.05 15.65 14.3 15.7 L10.5 15.65 Q9.1 15.5 8.7 14.4 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
+          {/* Right lens */}
+          <path d="M23.2 13.3 Q22.8 12.0 21.3 11.85 L17.6 11.8 Q16.9 11.9 16.7 12.75 L16.75 14.9 Q16.95 15.7 17.7 15.75 L21.5 15.7 Q22.9 15.55 23.3 14.45 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
+          {/* Bridge — slight curve */}
+          <path d="M15.3 13.6 Q16 13.3 16.7 13.6" stroke="#00e050" strokeWidth="0.85" strokeLinecap="round"/>
+          {/* Temple left */}
+          <path d="M8.8 13.5 C8.1 13.7 7.4 14.1 6.9 14.4" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
+          {/* Temple right */}
+          <path d="M23.2 13.6 C23.9 13.8 24.6 14.2 25.1 14.5" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
+        </svg>
         <div>
           <div
             className="wordmark-germ"
@@ -92,8 +91,8 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
 
       {/* Controls */}
       <div className="flex items-center" style={{ gap: 9 }}>
-        {/* View mode — pill control */}
-        <PillControl value={viewMode} onChange={(v) => onViewMode(v as ViewMode)} />
+        {/* View mode — red pill / blue pill */}
+        <PillToggle value={viewMode} onChange={(v) => onViewMode(v as ViewMode)} />
 
         {/* Difficulty */}
         <SegControl
@@ -105,6 +104,29 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
           value={difficulty}
           onChange={(v) => onDifficulty(v as Difficulty)}
         />
+
+        {/* RAG pipe pill */}
+        <button
+          onClick={onRagPipe}
+          disabled={!hasActiveTopic}
+          aria-label="Show RAG agent pipeline"
+          title="Show RAG agent pipeline"
+          style={{
+            fontSize: 11,
+            padding: "7px 12px",
+            borderRadius: 9,
+            border: `1px solid ${ragPipeActive ? "var(--green-deep)" : "var(--line)"}`,
+            background: ragPipeActive ? "color-mix(in oklab, var(--green-deep) 20%, var(--panel))" : "var(--panel)",
+            color: ragPipeActive ? "var(--green)" : "var(--txt-faint)",
+            cursor: hasActiveTopic ? "pointer" : "not-allowed",
+            opacity: hasActiveTopic ? 1 : 0.45,
+            fontFamily: "var(--font-mono, monospace)",
+            whiteSpace: "nowrap",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+          }}
+        >
+          ◷ RAG pipe
+        </button>
 
         {/* LLM pill — static until engine lands */}
         <div
@@ -143,6 +165,111 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
         </IconButton>
       </div>
     </header>
+  );
+}
+
+/* ---------- 3-D pill toggle (red = Rabbit Hole / blue = Plugged In) ---------- */
+
+function RedPill({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="10" viewBox="0 0 44 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="rp-hi" cx="35%" cy="28%" r="60%">
+          <stop offset="0%" stopColor="#ff9a9a"/>
+          <stop offset="60%" stopColor="#d63030"/>
+          <stop offset="100%" stopColor="#7a0c0c"/>
+        </radialGradient>
+        <radialGradient id="rp-sh" cx="50%" cy="80%" r="55%">
+          <stop offset="0%" stopColor="#000" stopOpacity="0.45"/>
+          <stop offset="100%" stopColor="#000" stopOpacity="0"/>
+        </radialGradient>
+        <linearGradient id="rp-shine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity={active ? 0.35 : 0.18}/>
+          <stop offset="100%" stopColor="#fff" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      {/* body */}
+      <rect x="1" y="1" width="42" height="18" rx="9" fill="url(#rp-hi)" opacity={active ? 1 : 0.5}/>
+      {/* shadow underlay */}
+      <rect x="1" y="1" width="42" height="18" rx="9" fill="url(#rp-sh)"/>
+      {/* specular shine */}
+      <rect x="4" y="2" width="36" height="8" rx="4" fill="url(#rp-shine)"/>
+      {/* crease line */}
+      <line x1="22" y1="2" x2="22" y2="18" stroke="#7a0c0c" strokeWidth="1.2" opacity="0.5"/>
+    </svg>
+  );
+}
+
+function BluePill({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="10" viewBox="0 0 44 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bp-hi" cx="35%" cy="28%" r="60%">
+          <stop offset="0%" stopColor="#c8daff"/>
+          <stop offset="55%" stopColor="#4a7ef5"/>
+          <stop offset="100%" stopColor="#1230a0"/>
+        </radialGradient>
+        <radialGradient id="bp-sh" cx="50%" cy="80%" r="55%">
+          <stop offset="0%" stopColor="#000" stopOpacity="0.45"/>
+          <stop offset="100%" stopColor="#000" stopOpacity="0"/>
+        </radialGradient>
+        <linearGradient id="bp-shine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity={active ? 0.35 : 0.18}/>
+          <stop offset="100%" stopColor="#fff" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect x="1" y="1" width="42" height="18" rx="9" fill="url(#bp-hi)" opacity={active ? 1 : 0.5}/>
+      <rect x="1" y="1" width="42" height="18" rx="9" fill="url(#bp-sh)"/>
+      <rect x="4" y="2" width="36" height="8" rx="4" fill="url(#bp-shine)"/>
+      <line x1="22" y1="2" x2="22" y2="18" stroke="#0a1f6e" strokeWidth="1.2" opacity="0.5"/>
+    </svg>
+  );
+}
+
+function PillToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const pills = [
+    { value: "reading", label: "Rabbit Hole", pill: <RedPill  active={value === "reading"} /> },
+    { value: "console", label: "Plugged In",  pill: <BluePill active={value === "console"} /> },
+  ];
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        border: "1px solid var(--line)",
+        borderRadius: 9,
+        overflow: "hidden",
+        background: "var(--panel)",
+      }}
+    >
+      {pills.map((p) => {
+        const active = value === p.value;
+        return (
+          <button
+            key={p.value}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(p.value)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11,
+              padding: "6px 11px",
+              border: 0,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              background: active ? "var(--panel-2)" : "transparent",
+              color: active ? "var(--txt)" : "var(--txt-dim)",
+              fontFamily: "var(--font-mono, monospace)",
+              transition: "background 0.15s, color 0.15s",
+            }}
+          >
+            {p.pill}
+            {p.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -196,59 +323,6 @@ function SegControl({ options, value, onChange }: {
   );
 }
 
-const PILL_OPTIONS: Array<{ value: ViewMode; label: string; bg: string; fg: string; border: string; icon: string }> = [
-  { value: "red-pill",  label: "Red Pill",  bg: "var(--pill-red-bg)",  fg: "var(--on-pill-red)",  border: "var(--pill-red)",  icon: "/pill-red.svg" },
-  { value: "blue-pill", label: "Blue Pill", bg: "var(--pill-blue-bg)", fg: "var(--on-pill-blue)", border: "var(--pill-blue)", icon: "/pill-blue.svg" },
-];
-
-function PillControl({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
-  return (
-    <div
-      role="tablist"
-      aria-label="View mode"
-      className="font-mono"
-      style={{
-        display: "inline-flex",
-        border: "1px solid var(--line)",
-        borderRadius: 9,
-        overflow: "hidden",
-        background: "var(--panel)",
-      }}
-    >
-      {PILL_OPTIONS.map((opt) => {
-        const active = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            role="tab"
-            aria-selected={active}
-            aria-label={`${opt.label} view`}
-            onClick={() => onChange(opt.value)}
-            style={{
-              fontSize: 11,
-              padding: "7px 11px",
-              border: active ? `1px solid ${opt.border}` : "1px solid transparent",
-              cursor: "pointer",
-              background: active ? opt.bg : "transparent",
-              color: active ? opt.fg : "var(--txt-dim)",
-              fontWeight: active ? 600 : 400,
-              boxShadow: active ? `0 0 8px ${opt.border}55` : "none",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              whiteSpace: "nowrap",
-              transition: "background 0.15s, color 0.15s, border-color 0.15s",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={opt.icon} alt="" aria-hidden width={20} height={9} style={{ display: "block", opacity: active ? 1 : 0.4 }} />
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function IconButton({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (

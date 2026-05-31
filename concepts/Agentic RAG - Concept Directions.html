@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="matrix">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GERMAYNE.exe · Concept Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+/* ============ THEME TOKENS ============ */
+:root[data-theme="matrix"]{
+  --bg:        oklch(0.15 0.018 152);
+  --bg-2:      oklch(0.185 0.022 152);
+  --panel:     oklch(0.205 0.024 152);
+  --panel-2:   oklch(0.235 0.028 152);
+  --line:      oklch(0.32 0.04 152);
+  --line-soft: oklch(0.27 0.03 152 / 0.6);
+  --txt:       oklch(0.92 0.05 150);
+  --txt-dim:   oklch(0.74 0.06 150);
+  --txt-faint: oklch(0.55 0.05 150);
+  --green:     oklch(0.88 0.21 150);
+  --green-2:   oklch(0.80 0.20 152);
+  --green-deep:oklch(0.55 0.16 152);
+  --cyan:      oklch(0.83 0.11 195);
+  --amber:     oklch(0.84 0.14 80);
+  --red:       oklch(0.72 0.18 25);
+  --glow:      0 0 0.5px var(--green), 0 0 14px oklch(0.88 0.21 150 / 0.35);
+  --rain:      0.5;
+  --shadow:    0 18px 50px -20px #000;
+  color-scheme: dark;
+}
+:root[data-theme="clinical"]{
+  --bg:        oklch(0.975 0.006 220);
+  --bg-2:      oklch(0.955 0.008 220);
+  --panel:     oklch(1 0 0);
+  --panel-2:   oklch(0.97 0.006 220);
+  --line:      oklch(0.88 0.012 220);
+  --line-soft: oklch(0.9 0.012 220 / 0.8);
+  --txt:       oklch(0.28 0.02 230);
+  --txt-dim:   oklch(0.46 0.02 230);
+  --txt-faint: oklch(0.62 0.02 230);
+  --green:     oklch(0.55 0.13 165);
+  --green-2:   oklch(0.6 0.12 168);
+  --green-deep:oklch(0.7 0.08 168);
+  --cyan:      oklch(0.6 0.1 220);
+  --amber:     oklch(0.7 0.13 65);
+  --red:       oklch(0.6 0.2 25);
+  --glow:      0 1px 2px oklch(0.55 0.13 165 / 0.15);
+  --rain:      0;
+  --shadow:    0 16px 40px -24px oklch(0.5 0.05 230 / 0.4);
+  color-scheme: light;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:"JetBrains Mono", ui-monospace, monospace;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+#rain{position:fixed;inset:0;z-index:0;opacity:var(--rain);pointer-events:none;transition:opacity .5s}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 32px}
+
+/* ============ TOP BAR ============ */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:color-mix(in oklab, var(--bg) 80%, transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line-soft);
+}
+.topbar .row{display:flex;align-items:center;gap:20px;height:60px;max-width:1240px;margin:0 auto;padding:0 32px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.5px;color:var(--txt)}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:var(--glow)}
+.brand small{color:var(--txt-faint);font-weight:400;letter-spacing:0}
+.topnav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.topnav a{color:var(--txt-dim);text-decoration:none;font-size:12px;padding:7px 11px;border-radius:7px;border:1px solid transparent}
+.topnav a:hover{color:var(--green);border-color:var(--line)}
+.themeswitch{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.themeswitch button{font-family:inherit;font-size:11px;background:transparent;color:var(--txt-dim);border:0;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.themeswitch button[aria-pressed="true"]{background:var(--panel-2);color:var(--green)}
+
+/* ============ TYPE ============ */
+.eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--green-2);display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--green-deep)}
+h1{font-family:"Newsreader",serif;font-weight:500;font-size:clamp(38px,6vw,68px);line-height:1.04;letter-spacing:-1px;color:var(--txt)}
+h2{font-family:"Newsreader",serif;font-weight:500;font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.5px;color:var(--txt)}
+h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim);font-weight:500}
+.serif{font-family:"Newsreader",serif}
+.lede{font-family:"Newsreader",serif;font-size:clamp(18px,2vw,23px);line-height:1.5;color:var(--txt-dim);max-width:62ch}
+.mono-note{font-size:12.5px;color:var(--txt-faint);line-height:1.6}
+.hl{color:var(--green)}
+.hl-amber{color:var(--amber)}
+.hl-cyan{color:var(--cyan)}
+
+/* ============ SECTIONS ============ */
+section{padding:88px 0;border-bottom:1px solid var(--line-soft)}
+.sec-head{display:flex;flex-direction:column;gap:16px;margin-bottom:44px;max-width:74ch}
+.sec-num{font-size:12px;color:var(--green-deep);letter-spacing:2px}
+
+/* hero */
+.hero{padding:96px 0 72px}
+.hero h1{margin:20px 0 26px}
+.hero .lede{margin-bottom:36px}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap}
+.btn{font-family:inherit;font-size:12.5px;letter-spacing:.5px;padding:13px 20px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--txt);text-decoration:none;display:inline-flex;align-items:center;gap:9px;cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,var(--green-2),var(--green-deep));color:#04130b;border-color:transparent;font-weight:700;box-shadow:var(--glow)}
+.btn:hover{border-color:var(--green-deep)}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:34px}
+.chip{font-size:11px;color:var(--txt-dim);border:1px solid var(--line);border-radius:999px;padding:6px 13px;background:color-mix(in oklab,var(--panel) 60%,transparent)}
+.chip .k{color:var(--green-2)}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* problem/solution */
+.ps{padding:26px;display:flex;flex-direction:column;gap:12px}
+.ps .tag{font-size:10.5px;letter-spacing:2px;text-transform:uppercase}
+.ps.bad .tag{color:var(--red)}
+.ps.good .tag{color:var(--green)}
+.ps p{font-family:"Newsreader",serif;font-size:18px;line-height:1.5;color:var(--txt-dim)}
+.ps.good p{color:var(--txt)}
+
+/* device frame */
+.screen{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.screen .bar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line-soft);background:var(--panel)}
+.screen .bar .tl{display:flex;gap:6px}
+.screen .bar .tl i{width:11px;height:11px;border-radius:50%;background:var(--line);display:block}
+.screen .bar .addr{font-size:11px;color:var(--txt-faint);margin-left:8px}
+.screen .bar .addr b{color:var(--txt-dim);font-weight:500}
+
+.foot{padding:60px 0 90px;color:var(--txt-faint);font-size:12px;display:flex;flex-direction:column;gap:8px}
+
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--txt-faint);margin-top:18px}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:3px;display:block}
+
+/* ============ PIPELINE FLOW ============ */
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1000px){.pipe{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.pipe{grid-template-columns:1fr}}
+.stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px}
+.stage .top{display:flex;align-items:center;gap:10px}
+.stage .gl{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:16px;border:1px solid var(--line);background:var(--panel-2);color:var(--green)}
+.stage .n{font-size:10px;color:var(--txt-faint);letter-spacing:1px;margin-left:auto}
+.stage .nm{font-size:13.5px;font-weight:700;color:var(--txt);letter-spacing:.3px}
+.stage .role{font-size:11.5px;color:var(--txt-dim);line-height:1.45}
+.stage .log{margin-top:auto;font-size:10.5px;color:var(--green-2);background:color-mix(in oklab,var(--bg) 60%,transparent);border:1px dashed var(--line-soft);border-radius:8px;padding:7px 9px;line-height:1.5}
+.stage.eval{border-color:color-mix(in oklab,var(--amber) 45%,var(--line))}
+.stage.eval .gl{color:var(--amber)}
+.stage.eval .log{color:var(--amber)}
+.stage.act{border-color:color-mix(in oklab,var(--green) 45%,var(--line));box-shadow:var(--glow)}
+.loopback{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 16px;border:1px dashed color-mix(in oklab,var(--amber) 50%,var(--line));border-radius:12px;background:color-mix(in oklab,var(--amber) 7%,transparent);font-size:12px;color:var(--txt-dim)}
+.loopback b{color:var(--amber)}
+.loopback .ar{color:var(--amber);font-size:18px}
+
+/* gauge */
+.gauge{display:flex;align-items:center;gap:18px}
+.ring{--p:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--green) calc(var(--p)*1%), var(--line-soft) 0);position:relative;flex:none}
+.ring::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--panel)}
+.ring b{position:relative;z-index:1;font-size:22px;color:var(--green);font-weight:700}
+.bars{display:flex;flex-direction:column;gap:9px;flex:1;min-width:0}
+.bar{display:flex;flex-direction:column;gap:4px}
+.bar .lab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--txt-dim)}
+.bar .lab b{color:var(--txt)}
+.bar .track{height:7px;border-radius:6px;background:var(--line-soft);overflow:hidden}
+.bar .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green-deep),var(--green))}
+.bar.amber .fill{background:linear-gradient(90deg,var(--amber),var(--green))}
+
+/* citations */
+.cite{font-family:"JetBrains Mono",monospace;font-size:10px;color:#04130b;background:var(--green);border-radius:5px;padding:1px 6px;vertical-align:super;font-weight:700;cursor:pointer}
+.answer{font-family:"Newsreader",serif;font-size:16px;line-height:1.62;color:var(--txt)}
+.source{border:1px solid var(--line);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:5px;background:var(--panel-2)}
+.source .meta{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--txt-faint)}
+.source .meta .id{background:var(--green);color:#04130b;border-radius:4px;padding:0 6px;font-weight:700}
+.source .meta .mod{color:var(--cyan)}
+.source .snip{font-size:11.5px;color:var(--txt-dim);line-height:1.5}
+
+/* small ui atoms */
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:var(--panel);color:var(--txt-dim)}
+.pill .sd{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:var(--glow)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg span{font-size:10.5px;padding:6px 11px;color:var(--txt-dim)}
+.seg span.on{background:var(--panel-2);color:var(--green)}
+.kbd{font-size:10px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--txt-dim)}
+
+/* ============ MOCK APP SHELLS ============ */
+.mock{font-size:13px}
+.mock .apptop{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line-soft);background:var(--panel)}
+.mock .logo{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--txt)}
+.mock .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:var(--glow)}
+.mock .apptop .sp{margin-left:auto}
+.mock .ti{display:flex;gap:6px}
+.mock .ti .t{font-size:11px;color:var(--txt-dim);padding:6px 10px;border-radius:7px}
+.mock .ti .t.on{background:var(--panel-2);color:var(--green)}
+
+.ann{display:flex;gap:10px;align-items:flex-start;font-size:11.5px;color:var(--txt-dim);line-height:1.5;padding:10px 0}
+.ann .b{flex:none;width:22px;height:22px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line);color:var(--green);display:grid;place-items:center;font-size:11px;font-weight:700}
+.ann b{color:var(--txt)}
+.annlist{display:grid;gap:2px;margin-top:22px}
+@media(max-width:900px){.annlist{margin-top:8px}}
+
+/* conversation */
+.bubble{max-width:90%;border-radius:13px;padding:12px 15px;font-size:13px;line-height:1.55}
+.bubble.user{margin-left:auto;background:var(--panel-2);border:1px solid var(--line);color:var(--txt)}
+.bubble.bot{background:transparent;border:1px solid var(--line-soft);color:var(--txt)}
+.msgs{display:flex;flex-direction:column;gap:16px;padding:18px}
+.composer{display:flex;gap:10px;align-items:center;padding:12px 16px;border-top:1px solid var(--line-soft);background:var(--panel)}
+.composer .inp{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:11px 14px;color:var(--txt-faint);font-size:12.5px}
+.composer .send{width:38px;height:38px;border-radius:10px;background:var(--green);color:#04130b;display:grid;place-items:center;font-weight:700;flex:none}
+
+/* rail */
+.rail{border-left:1px solid var(--line-soft);background:color-mix(in oklab,var(--panel) 60%,transparent);display:flex;flex-direction:column}
+.rail .rh{padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim)}
+.rstage{padding:11px 16px;border-bottom:1px solid var(--line-soft);display:flex;flex-direction:column;gap:7px}
+.rstage .rt{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--txt)}
+.rstage .rt .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;background:var(--panel-2);border:1px solid var(--line);color:var(--green)}
+.rstage .rt .st{margin-left:auto;font-size:9.5px;color:var(--green);letter-spacing:1px}
+.rstage .rt .st.run{color:var(--amber)}
+.rstage .rt .st.wait{color:var(--txt-faint)}
+.rstage .det{font-size:10.5px;color:var(--txt-faint);line-height:1.5;padding-left:31px}
+.rstage .chev{color:var(--txt-faint);font-size:11px}
+
+/* coverage map */
+.cov{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cov .m{border:1px solid var(--line);border-radius:8px;padding:8px 7px;display:flex;flex-direction:column;gap:5px;background:var(--panel-2);font-size:10px}
+.cov .m .id{color:var(--green);font-weight:700;font-size:11px}
+.cov .m .nm{color:var(--txt-faint);line-height:1.3;font-size:9px}
+.cov .m .b{height:4px;border-radius:3px;background:var(--line-soft);overflow:hidden}
+.cov .m .b i{display:block;height:100%;background:var(--green)}
+.cov .m.hot{border-color:var(--green);box-shadow:var(--glow)}
+
+/* node graph */
+.graph{position:relative;height:340px;background:radial-gradient(circle at 50% 40%, color-mix(in oklab,var(--green) 6%, var(--bg-2)), var(--bg-2));border-bottom:1px solid var(--line-soft);overflow:hidden}
+.node{position:absolute;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 12px;font-size:11px;display:flex;align-items:center;gap:8px;min-width:96px;box-shadow:var(--shadow)}
+.node .g{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:var(--panel-2);color:var(--green);font-size:11px;border:1px solid var(--line)}
+.node small{display:block;font-size:8.5px;color:var(--txt-faint);letter-spacing:.5px}
+.node b{font-size:11px;color:var(--txt);font-weight:600}
+.node.on{border-color:var(--green);box-shadow:var(--glow)}
+.node.amber{border-color:color-mix(in oklab,var(--amber) 50%,var(--line))}
+.node.amber .g{color:var(--amber)}
+.gsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.gsvg path{stroke:var(--green-deep);stroke-width:1.4;fill:none;opacity:.7}
+.gsvg path.amber{stroke:var(--amber);stroke-dasharray:4 4}
+
+/* terminal */
+.term{font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.7;padding:14px 16px;color:var(--txt-dim)}
+.term .pr{color:var(--green)}
+.term .cm{color:var(--txt)}
+.term .dim{color:var(--txt-faint)}
+.term .ok{color:var(--green)}
+.term .am{color:var(--amber)}
+.term .cy{color:var(--cyan)}
+.term .rd{color:var(--red)}
+.term .ln{display:flex;gap:10px}
+.term .ln .gut{color:var(--txt-faint);opacity:.5;flex:none;width:18px;text-align:right;user-select:none}
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+
+<header class="topbar">
+  <div class="row">
+    <div class="brand"><span class="dot"></span> GERMAYNE.exe <small>// concept directions</small></div>
+    <nav class="topnav">
+      <a href="#thesis">Thesis</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#viewmodes">Views</a>
+      <a href="#dirA">Dir&nbsp;A</a>
+      <a href="#dirB">Dir&nbsp;B</a>
+      <a href="#dirC">Dir&nbsp;C</a>
+      <a href="#components">Components</a>
+    </nav>
+    <div class="themeswitch" role="group" aria-label="Theme">
+      <button data-set-theme="matrix" aria-pressed="true">◖ Matrix</button>
+      <button data-set-theme="clinical" aria-pressed="false">◗ Clinical</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO / THESIS ============ -->
+<div class="wrap hero" id="thesis">
+  <div class="eyebrow">A digital twin of your instructor · ML modules 3.1–3.10</div>
+  <h1>Learn ML in<br/><span class="hl">Germayne's voice.</span></h1>
+  <p class="lede">A retrieval tutor that answers <b>in the teaching style of Germayne</b>, grounded in your <b>5M-Data</b> Zoom transcripts &amp; textbooks. It <span class="hl">routes, rewrites, retrieves across hops, reflects, corrects, and re-acts</span> — looping until the answer is faithful enough to actually learn from. And it doesn't just <i>talk</i>: every answer opens up <span class="hl">Explain · Visualize · Code · Math</span> so you see the ML under the hood.</p>
+  <div class="cta-row">
+    <a href="#pipeline" class="btn primary">▸ See the agent loop</a>
+    <a href="#dirA" class="btn">3 layout directions</a>
+  </div>
+  <div class="chips">
+    <span class="chip"><span class="k">corpus:</span> 10 modules · transcripts + 4 textbooks</span>
+    <span class="chip"><span class="k">backends:</span> Ollama · alt-LLM · cloud API</span>
+    <span class="chip"><span class="k">theme:</span> Matrix ⇄ Clinical</span>
+    <span class="chip"><span class="k">guarantee:</span> evaluate &amp; loop until learning-grade</span>
+    <span class="chip"><span class="k">dedicated to:</span> Germayne · the instructor it clones</span>
+  </div>
+</div>
+
+<!-- ============ WHY ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">00 / THE PROBLEM</div>
+      <h2>ML concepts move too fast in class to absorb live.</h2>
+      <p class="mono-note">So the app's job isn't just "answer questions" — it's to <span class="hl">reconstruct understanding faithfully</span> from what was actually taught, and prove it did. Below: why a plain chatbot fails this, and the bet we're making.</p>
+    </div>
+    <div class="grid g2">
+      <div class="card ps bad">
+        <span class="tag">✕ Plain chatbot</span>
+        <p>Confidently hallucinates a definition of <i>regularization</i> that was never in the lecture. You can't tell what's grounded and what's invented — the opposite of learning.</p>
+      </div>
+      <div class="card ps good">
+        <span class="tag">✓ Glass-box agentic RAG</span>
+        <p>Shows it routed your question to module <span class="hl">3.4</span>, retrieved the exact transcript moment, <span class="hl">scored its own answer</span> for faithfulness, found a gap, and re-retrieved — citing every claim back to the source.</p>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i> grounded &amp; cited</span>
+      <span><i style="background:var(--amber)"></i> evaluation / self-critique</span>
+      <span><i style="background:var(--cyan)"></i> retrieval hop</span>
+      <span><i style="background:var(--red)"></i> rejected / corrected</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PIPELINE ============ -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">01 / THE AGENT LOOP</div>
+      <h2>Seven moves, one loop, until it's learning-grade.</h2>
+      <p class="mono-note">Every question runs this pipeline. Each stage is a <span class="hl">collapsible glass-box card</span> in the UI — open it to watch the agent work, collapse it to just read the answer. The whole thing repeats until the evaluation gauge clears threshold.</p>
+    </div>
+    <div id="pipeflow">
+      <div class="pipe">
+        <div class="stage">
+          <div class="top"><span class="gl">⟁</span><span class="n">01</span></div>
+          <div class="nm">Route</div>
+          <div class="role">Classifies the question &amp; picks which module(s) and index to search — or sends trivial/chit-chat straight to the LLM, skipping retrieval.</div>
+          <div class="log">→ topic=overfitting · route→[3.3, 3.4] · type=conceptual</div>
+        </div>
+        <div class="stage">
+          <div class="top"><span class="gl">✎</span><span class="n">02</span></div>
+          <div class="nm">Rewrite</div>
+          <div class="role">Expands the raw query into retrieval-friendly form: resolves pronouns, adds synonyms &amp; sub-questions for better recall.</div>
+          <div class="log">"why does it overfit?" → "causes of overfitting; bias-variance; regularization"</div>
+        </div>
+        <div class="stage">
+          <div class="top"><span class="gl">⛁</span><span class="n">03</span></div>
+          <div class="nm">Multi-hop Retrieve</div>
+          <div class="role">Pulls chunks, then follows what it finds — a 2nd hop fetches prerequisites a 1st-pass answer depends on (e.g. bias-variance).</div>
+          <div class="log">hop 1: 6 chunks · hop 2: +3 (prereq: bias-variance tradeoff)</div>
+        </div>
+        <div class="stage">
+          <div class="top"><span class="gl">◈</span><span class="n">04</span></div>
+          <div class="nm">ReAct</div>
+          <div class="role">Reason→Act steps: the agent can call tools — search again, open a notebook, render a formula, or run a quick check — between thoughts.</div>
+          <div class="log">thought→ need formula · act→ render(LaTeX) · observe→ ok</div>
+        </div>
+        <div class="stage eval">
+          <div class="top"><span class="gl">◎</span><span class="n">05</span></div>
+          <div class="nm">Self-Reflect / Correct</div>
+          <div class="role">Critiques its own draft: every claim grounded? Anything unsupported gets flagged, dropped, or sent back for re-retrieval (CRAG-style).</div>
+          <div class="log">claim 3 unsupported → drop · gap: no example → re-retrieve</div>
+        </div>
+        <div class="stage eval">
+          <div class="top"><span class="gl">▦</span><span class="n">06</span></div>
+          <div class="nm">Evaluate</div>
+          <div class="role">Scores faithfulness · relevance · completeness on the live gauge. Below threshold? Loop back. Above? Ship it.</div>
+          <div class="log">faithful 0.71 · relevant 0.88 · complete 0.60 → BELOW 0.80</div>
+        </div>
+        <div class="stage act">
+          <div class="top"><span class="gl">✦</span><span class="n">07</span></div>
+          <div class="nm">Compose Answer</div>
+          <div class="role">Writes the final, fully-cited explanation at your chosen difficulty (ELI5 ↔ rigorous), with worked examples &amp; LaTeX.</div>
+          <div class="log">answer ✓ · 5 citations · 2 figures · grade=PASS</div>
+        </div>
+        <div class="stage">
+          <div class="top"><span class="gl">⌖</span><span class="n">+</span></div>
+          <div class="nm">Tools available</div>
+          <div class="role">vector-search · keyword/BM25 · open-notebook · render-LaTeX · concept-graph lookup · web (optional, off by default).</div>
+          <div class="log">corpus-only mode keeps answers faithful to course material</div>
+        </div>
+      </div>
+      <div class="loopback">
+        <span class="ar">↻</span>
+        <div><b>The corrective loop:</b> stages 03–06 repeat while any score &lt; threshold. Each pass the rewrite sharpens and retrieval widens — you watch the gauge climb v1 → v2 → v3 until it clears, then stage 07 composes.</div>
+      </div>
+    </div>
+    <p class="mono-note" style="margin-top:26px;max-width:78ch">
+      <span class="hl-amber">The loop is the guarantee.</span> If faithfulness, relevance, or completeness fall below threshold, the agent rewrites its query, retrieves more, and tries again — up to N passes — rather than shipping a weak answer. You watch the gauge climb each pass.
+    </p>
+  </div>
+</section>
+
+<!-- ============ VIEW MODES (unified app) ============ -->
+<section id="viewmodes">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">02 / THE BIG DECISION</div>
+      <h2>The three directions aren't either/or — they're one app's view modes.</h2>
+      <p class="mono-note">Same engine underneath (the 7-stage loop, Germayne's answers, citations, eval gauge, both themes, all LLM backends). The learner just picks how much machinery they want on screen with a <span class="hl">VIEW</span> switch. Try it ↓ — this control is live.</p>
+    </div>
+
+    <div class="screen mock">
+      <div class="bar">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <span class="addr"><b>germayne.exe</b> — one engine, three views</span>
+      </div>
+      <div class="apptop">
+        <div class="logo"><span class="dot"></span> GERMAYNE.exe</div>
+        <span style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt-faint);margin-left:14px">view</span>
+        <span class="seg" id="vm-seg" style="margin-left:8px">
+          <span data-v="reading" class="on">▤ Reading</span>
+          <span data-v="canvas">◈ Canvas</span>
+          <span data-v="console">⌥ Console</span>
+        </span>
+        <div class="sp"></div>
+        <span class="pill"><span class="sd"></span> Ollama</span>
+      </div>
+
+      <div style="padding:18px">
+        <!-- READING -->
+        <div class="vm-pane" data-pane="reading">
+          <div style="display:grid;grid-template-columns:1fr 240px;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="source" style="border-color:var(--green);box-shadow:var(--glow);gap:9px">
+                <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-dim)"><b style="color:var(--txt)">G · answer</b><span class="pill" style="padding:2px 8px;font-size:9px;border-color:color-mix(in oklab,var(--green) 45%,var(--line));color:var(--green)">PASS 0.88</span></div>
+                <div class="seg" style="align-self:flex-start"><span class="on" style="font-size:10px;padding:5px 9px">Explain</span><span style="font-size:10px;padding:5px 9px;color:var(--txt-faint)">Visualize</span><span style="font-size:10px;padding:5px 9px;color:var(--txt-faint)">Code</span><span style="font-size:10px;padding:5px 9px;color:var(--txt-faint)">Math</span></div>
+                <div class="answer" style="font-size:14px">A tree overfits when it keeps splitting until it memorises noise<span class="cite">1</span> — high variance<span class="cite">2</span>. Cap its depth or prune it back.</div>
+              </div>
+              <div class="source" style="color:var(--txt-faint)">⌨ ask a follow-up…</div>
+            </div>
+            <div class="source" style="gap:9px">
+              <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim)">◷ pipeline rail</div>
+              <div style="font-size:10px;color:var(--green)">✓ route · ✓ rewrite · ✓ retrieve</div>
+              <div style="font-size:10px;color:var(--amber)">↻ reflect · relooped</div>
+              <div class="gauge" style="margin-top:4px"><div class="ring" style="--p:88;width:50px;height:50px"><b style="font-size:13px">88</b></div><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:91%"></div></div></div><div class="bar"><div class="track"><div class="fill" style="width:88%"></div></div></div><div class="bar amber"><div class="track"><div class="fill" style="width:84%"></div></div></div></div></div>
+            </div>
+          </div>
+          <div class="ann"><span class="b">A</span><div><b>Reading</b> — calm tutor focus. The multi-modal answer is the hero; the agent pipeline sits in a quiet collapsible rail. <span class="hl">Default for daily study.</span></div></div>
+        </div>
+
+        <!-- CANVAS -->
+        <div class="vm-pane" data-pane="canvas" style="display:none">
+          <div class="graph" style="height:230px;border-radius:11px;border:1px solid var(--line-soft)">
+            <svg class="gsvg" viewBox="0 0 800 230" preserveAspectRatio="none">
+              <path d="M110,70 C170,70 175,70 220,70"/><path d="M300,70 C350,70 360,70 400,70"/>
+              <path d="M470,75 C520,90 510,140 480,160"/><path d="M400,175 C340,190 300,185 270,160"/>
+              <path class="amber" d="M480,160 C560,210 320,215 150,90"/>
+            </svg>
+            <div class="node on" style="left:9%;top:30%"><span class="g">⟁</span><div><small>01</small><b>Route</b></div></div>
+            <div class="node on" style="left:33%;top:30%"><span class="g">✎</span><div><small>02</small><b>Rewrite</b></div></div>
+            <div class="node on" style="left:55%;top:30%"><span class="g">⛁</span><div><small>03</small><b>Retrieve</b></div></div>
+            <div class="node amber" style="left:30%;top:72%"><span class="g">◎</span><div><small>05</small><b>Reflect</b></div></div>
+            <div class="node amber" style="left:62%;top:70%"><span class="g">▦</span><div><small>06</small><b>Eval</b></div></div>
+          </div>
+          <div class="ann"><span class="b">B</span><div><b>Canvas</b> — the agent graph is the hero; nodes light up live and an <span class="hl-amber">amber back-edge</span> fires on the corrective re-loop. <span class="hl">The wow / demo view.</span></div></div>
+        </div>
+
+        <!-- CONSOLE -->
+        <div class="vm-pane" data-pane="console" style="display:none">
+          <div class="term" style="border:1px solid var(--line-soft);border-radius:11px;background:var(--bg-2)">
+            <div class="ln"><span class="gut">01</span><div><span class="pr">germayne&gt;</span> <span class="cm">why does my tree overfit?</span></div></div>
+            <div class="ln"><span class="gut">02</span><div><span class="dim">[route]</span> → <span class="cy">3.3 3.4</span> · <span class="dim">[eval]</span> <span class="am">0.72 reloop</span> → <span class="ok">0.88 PASS ✓</span></div></div>
+            <div class="ln"><span class="gut">03</span><div><span class="pr">answer&gt;</span> it splits until it memorises noise<span class="cite">1</span>… <span class="kbd">/quiz</span> <span class="kbd">/eli5</span></div></div>
+          </div>
+          <div class="ann"><span class="b">C</span><div><b>Console</b> — full-Matrix terminal: reasoning &amp; answer interleave as log lines, coverage map + sources always up, slash-commands. <span class="hl">For power users.</span></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="mono-note" style="margin-top:16px;max-width:78ch"><span class="hl-amber">Build cost note:</span> because all three share the same engine and components, adding the toggle is mostly layout work — not three separate apps. We can ship Reading first and light up Canvas/Console behind the switch.</p>
+  </div>
+</section>
+<script>
+(function(){var seg=document.getElementById('vm-seg');if(!seg)return;
+  seg.addEventListener('click',function(e){var b=e.target.closest('[data-v]');if(!b)return;
+    seg.querySelectorAll('[data-v]').forEach(function(x){x.classList.toggle('on',x===b);});
+    document.querySelectorAll('.vm-pane').forEach(function(p){p.style.display=(p.dataset.pane===b.dataset.v)?'block':'none';});});
+})();
+</script>
+
+<!-- ============ DIRECTION A ============ -->
+<section id="dirA">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">03 / DIRECTION A</div>
+      <h2>The Tutor + Live Pipeline Rail</h2>
+      <p class="mono-note">The safe, familiar one. A focused <span class="hl">Socratic conversation</span> on the left; the agent's seven stages stream down a <span class="hl">collapsible rail</span> on the right with the eval gauge pinned at the bottom. Read just the answer, or open any stage to inspect the work. Lowest learning curve.</p>
+    </div>
+
+    <div class="screen mock">
+      <div class="bar">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <span class="addr"><b>germayne.exe</b>/tutor — overfitting</span>
+      </div>
+      <div class="apptop">
+        <div class="logo"><span class="dot"></span> GERMAYNE.exe</div>
+        <span class="pill"><span class="sd"></span> llama3.1:8b · <span class="hl">Ollama local</span></span>
+        <div class="sp"></div>
+        <span class="seg"><span>ELI5</span><span class="on">Standard</span><span>Rigorous</span></span>
+        <span class="pill" style="margin-left:8px">scope: <span class="hl-cyan">3.3–3.4</span></span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px">
+        <!-- conversation -->
+        <div style="display:flex;flex-direction:column;border-right:1px solid var(--line-soft)">
+          <div class="msgs">
+            <div class="bubble user">Why does my decision tree overfit, and how do I stop it?</div>
+            <div class="bubble bot">
+              <div class="answer">
+                A decision tree overfits when it grows deep enough to memorise <i>noise</i> in the training set rather than the underlying signal — it keeps splitting until each leaf is nearly pure<span class="cite">1</span>. That drives training error to zero while test error climbs: the classic <b>high-variance</b> regime of the bias–variance tradeoff<span class="cite">2</span>.
+                <br/><br/>
+                To rein it in, constrain capacity: cap <code>max_depth</code>, raise <code>min_samples_leaf</code>, or <b>prune</b> back weak splits. Ensembling (random forests) averages many de-correlated trees to cut variance further<span class="cite">3</span>.
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                <span class="pill">↳ show worked example</span>
+                <span class="pill">⌥ 3 sources</span>
+                <span class="pill">＋ save to notebook</span>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="inp">Ask about any concept in modules 3.1–3.10…</div>
+            <div class="send">↑</div>
+          </div>
+        </div>
+        <!-- rail -->
+        <div class="rail">
+          <div class="rh">◷ agent trace · pass 2/2 <span style="margin-left:auto" class="kbd">collapse all</span></div>
+          <div class="rstage">
+            <div class="rt"><span class="ic">⟁</span> Route <span class="st">DONE</span></div>
+            <div class="det">→ modules 3.3, 3.4 · type=conceptual</div>
+          </div>
+          <div class="rstage">
+            <div class="rt"><span class="ic">✎</span> Rewrite <span class="st">DONE</span> <span class="chev">▸</span></div>
+          </div>
+          <div class="rstage">
+            <div class="rt"><span class="ic">⛁</span> Multi-hop Retrieve <span class="st">DONE</span></div>
+            <div class="det">hop1: 6 chunks · hop2: +3 (prereq: bias-variance)</div>
+          </div>
+          <div class="rstage">
+            <div class="rt"><span class="ic">◈</span> ReAct <span class="st">DONE</span> <span class="chev">▸</span></div>
+          </div>
+          <div class="rstage">
+            <div class="rt"><span class="ic" style="color:var(--amber)">◎</span> Reflect / Correct <span class="st run">RELOOPED</span></div>
+            <div class="det" style="color:var(--amber)">v1 dropped 1 unsupported claim → re-retrieved</div>
+          </div>
+          <div class="rstage" style="margin-top:auto;background:color-mix(in oklab,var(--amber) 6%,transparent)">
+            <div class="rt"><span class="ic" style="color:var(--amber)">▦</span> Evaluate <span class="st">PASS ✓</span></div>
+            <div class="gauge" style="padding:6px 0 2px">
+              <div class="ring" style="--p:88;width:64px;height:64px"><b style="font-size:15px">88</b></div>
+              <div class="bars">
+                <div class="bar"><div class="lab"><span>faithfulness</span><b>0.91</b></div><div class="track"><div class="fill" style="width:91%"></div></div></div>
+                <div class="bar"><div class="lab"><span>relevance</span><b>0.88</b></div><div class="track"><div class="fill" style="width:88%"></div></div></div>
+                <div class="bar amber"><div class="lab"><span>completeness</span><b>0.84</b></div><div class="track"><div class="fill" style="width:84%"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:8px">
+      <div class="annlist">
+        <div class="ann"><span class="b">A</span><div><b>Difficulty toggle</b> lives in the header — recompose the same answer ELI5 ↔ rigorous instantly.</div></div>
+        <div class="ann"><span class="b">B</span><div><b>Inline citations</b> are numbered; hover highlights the exact source chunk. Full panel one click away.</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">C</span><div><b>Glass-box rail</b> — each stage collapses to a one-liner; the relooped Reflect stage is flagged amber.</div></div>
+        <div class="ann"><span class="b">D</span><div><b>Eval gauge pinned</b> at the rail's foot, showing the passing pass-2 scores.</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">E</span><div><b>LLM pill</b> shows the live backend + connection dot; click for the full settings drawer.</div></div>
+        <div class="ann"><span class="b">F</span><div><b>Best for:</b> users who want to read and learn first, inspect the agent only when curious.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTION B ============ -->
+<section id="dirB">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">04 / DIRECTION B</div>
+      <h2>The Reasoning Canvas</h2>
+      <p class="mono-note">The bold one. The <span class="hl">agent graph is the hero</span> — a living node map of the loop. Nodes light up as the agent moves; the corrective re-loop draws an <span class="hl-amber">amber back-edge</span> you can literally watch fire. The composed answer assembles in the panel below the graph. This is the "wow" — it teaches agentic RAG <i>while</i> teaching ML.</p>
+    </div>
+
+    <div class="screen mock">
+      <div class="bar">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <span class="addr"><b>germayne.exe</b>/canvas — bias-variance tradeoff</span>
+      </div>
+      <div class="apptop">
+        <div class="logo"><span class="dot"></span> GERMAYNE.exe</div>
+        <span class="pill" style="margin-left:14px">query → <span class="hl">"explain the bias-variance tradeoff"</span></span>
+        <div class="sp"></div>
+        <span class="pill"><span class="sd"></span> mixtral · <span class="hl">cloud API</span></span>
+      </div>
+
+      <!-- graph -->
+      <div class="graph">
+        <svg class="gsvg" viewBox="0 0 900 340" preserveAspectRatio="none">
+          <path d="M120,90 C190,90 200,90 260,90" />
+          <path d="M330,90 C390,90 400,90 450,90" />
+          <path d="M520,90 C560,90 560,150 540,180" />
+          <path d="M460,210 C400,230 340,230 300,210" />
+          <path d="M250,200 C220,170 220,140 235,112" />
+          <path class="amber" d="M540,215 C600,250 360,300 175,118" />
+          <path d="M560,200 C640,210 700,180 740,150" />
+          <path d="M740,128 C760,110 770,110 778,98" />
+        </svg>
+        <div class="node on" style="left:8%;top:26%"><span class="g">⟁</span><div><small>STAGE 01</small><b>Route</b></div></div>
+        <div class="node on" style="left:32%;top:26%"><span class="g">✎</span><div><small>STAGE 02</small><b>Rewrite</b></div></div>
+        <div class="node on" style="left:55%;top:26%"><span class="g">⛁</span><div><small>STAGE 03 ·hop2</small><b>Retrieve</b></div></div>
+        <div class="node on" style="left:58%;top:58%"><span class="g">◈</span><div><small>STAGE 04</small><b>ReAct</b></div></div>
+        <div class="node amber" style="left:30%;top:62%"><span class="g">◎</span><div><small>STAGE 05</small><b>Reflect</b></div></div>
+        <div class="node amber" style="left:82%;top:45%"><span class="g">▦</span><div><small>STAGE 06</small><b>Evaluate</b></div></div>
+        <div class="node" style="left:86%;top:80%;min-width:0;padding:7px 10px"><div><small>back-edge</small><b style="color:var(--amber)">↻ re-loop</b></div></div>
+      </div>
+
+      <!-- answer assembling below graph -->
+      <div style="display:grid;grid-template-columns:1fr 280px">
+        <div style="padding:18px 20px;border-right:1px solid var(--line-soft)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span class="pill">▦ composing · pass 2</span>
+            <span class="pill" style="border-color:color-mix(in oklab,var(--green) 50%,var(--line));color:var(--green)">grade PASS · 0.89</span>
+          </div>
+          <div class="answer">
+            The <b>bias–variance tradeoff</b> describes how a model's error decomposes into two competing sources. <b>Bias</b> is error from oversimplified assumptions — a model too rigid to capture the pattern (underfitting)<span class="cite">1</span>. <b>Variance</b> is sensitivity to the particular training sample — a model so flexible it fits noise (overfitting)<span class="cite">2</span>. Total expected error = bias² + variance + irreducible noise<span class="cite">3</span>, so lowering one often raises the other; the goal is the sweet spot that minimises their sum.
+          </div>
+          <div style="margin-top:14px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px;font-size:11.5px;color:var(--txt-dim)">
+            <span class="hl-cyan">⊞ worked example ·</span> KNN: small <i>k</i> → low bias / high variance; large <i>k</i> → high bias / low variance. <span class="hl-amber">∑</span> renders live as LaTeX.
+          </div>
+        </div>
+        <!-- eval gauge -->
+        <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
+          <div class="rh" style="padding:0;border:0">▦ evaluation</div>
+          <div class="gauge">
+            <div class="ring" style="--p:89"><b>89</b></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><div class="lab"><span>faithfulness</span><b>0.93</b></div><div class="track"><div class="fill" style="width:93%"></div></div></div>
+            <div class="bar"><div class="lab"><span>relevance</span><b>0.90</b></div><div class="track"><div class="fill" style="width:90%"></div></div></div>
+            <div class="bar amber"><div class="lab"><span>completeness</span><b>0.84</b></div><div class="track"><div class="fill" style="width:84%"></div></div></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--txt-faint);line-height:1.6;border-top:1px solid var(--line-soft);padding-top:10px">
+            pass 1 → 0.72 (completeness low)<br/>
+            <span class="hl-amber">↻ re-retrieved + rewrote</span><br/>
+            pass 2 → <span class="hl">0.89 PASS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:8px">
+      <div class="annlist">
+        <div class="ann"><span class="b">A</span><div><b>Live node graph</b> — green = done, amber = evaluating/relooping. Click a node to expand its full trace inline.</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">B</span><div><b>Amber back-edge</b> animates when the corrective loop fires — the single most legible way to "see" CRAG working.</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">C</span><div><b>Best for:</b> the wow demo &amp; learners who think visually. Trade-off: more screen real estate per answer.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIRECTION C ============ -->
+<section id="dirC">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">05 / DIRECTION C</div>
+      <h2>The Terminal Mission-Control</h2>
+      <p class="mono-note">The full-Matrix one. A three-pane ops console: <span class="hl">module coverage map</span> left, a <span class="hl">terminal stream</span> center where reasoning and answer interleave as typed log lines, and <span class="hl-amber">evaluation + sources</span> right. Maximum density, maximum theme — for power users who want everything visible at once and love the terminal aesthetic.</p>
+    </div>
+
+    <div class="screen mock">
+      <div class="bar">
+        <div class="tl"><i></i><i></i><i></i></div>
+        <span class="addr"><b>germayne.exe</b> — ~/console · session 0x3f</span>
+      </div>
+      <div class="apptop">
+        <div class="logo"><span class="dot"></span> GERMAYNE.exe</div>
+        <span class="pill" style="margin-left:14px">▦ eval 0.86 PASS</span>
+        <div class="sp"></div>
+        <span class="pill"><span class="sd"></span> local · <span class="hl">qwen2.5:14b</span></span>
+        <span class="seg" style="margin-left:8px"><span class="on">corpus-only</span><span>+web</span></span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:200px 1fr 260px;min-height:420px">
+        <!-- coverage map -->
+        <div style="padding:14px;border-right:1px solid var(--line-soft)">
+          <div class="rh" style="padding:0 0 12px;border:0">⊞ corpus coverage</div>
+          <div class="cov">
+            <div class="m"><span class="id">3.1</span><span class="nm">Prob &amp; Stats</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m"><span class="id">3.2</span><span class="nm">Intro ML</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m hot"><span class="id">3.3</span><span class="nm">Supervised</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m hot"><span class="id">3.4</span><span class="nm">Sup. Adv</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m"><span class="id">3.5</span><span class="nm">Unsup.</span><div class="b"><i style="width:80%"></i></div></div>
+            <div class="m"><span class="id">3.6</span><span class="nm">Time Series</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m"><span class="id">3.7</span><span class="nm">Neural Net</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m"><span class="id">3.8</span><span class="nm">CV</span><div class="b"><i style="width:90%"></i></div></div>
+            <div class="m"><span class="id">3.9</span><span class="nm">NLP</span><div class="b"><i style="width:100%"></i></div></div>
+            <div class="m"><span class="id">3.10</span><span class="nm">NLP Adv</span><div class="b"><i style="width:70%"></i></div></div>
+          </div>
+          <div style="margin-top:16px;font-size:10px;color:var(--txt-faint);line-height:1.7">
+            <div class="rh" style="padding:0 0 8px;border:0">⛁ indexed</div>
+            transcripts · 142 hrs<br/>textbooks · 4 (ISLR, etc.)<br/>notebooks · 38<br/><span class="hl">hot = active scope</span>
+          </div>
+        </div>
+
+        <!-- terminal stream -->
+        <div class="term" style="border-right:1px solid var(--line-soft)">
+          <div class="ln"><span class="gut">01</span><div><span class="pr">germayne&gt;</span> <span class="cm">explain L1 vs L2 regularization and when to use each</span></div></div>
+          <div class="ln"><span class="gut">02</span><div><span class="dim">[route]</span> topic=regularization → modules <span class="cy">[3.4]</span> · type=conceptual+comparative</div></div>
+          <div class="ln"><span class="gut">03</span><div><span class="dim">[rewrite]</span> +"Lasso Ridge", +"sparsity", +"feature selection", +"coefficient shrinkage"</div></div>
+          <div class="ln"><span class="gut">04</span><div><span class="dim">[retrieve·hop1]</span> <span class="ok">6 chunks</span> <span class="dim">— lecture 3.4 §regularization, ISLR ch.6</span></div></div>
+          <div class="ln"><span class="gut">05</span><div><span class="dim">[react]</span> thought: need the geometry · act: <span class="cy">render(L1 diamond vs L2 circle)</span> · obs: ok</div></div>
+          <div class="ln"><span class="gut">06</span><div><span class="dim">[reflect]</span> <span class="am">⚠ draft claim "L1 always better" unsupported → drop</span></div></div>
+          <div class="ln"><span class="gut">07</span><div><span class="dim">[evaluate]</span> faithful <span class="am">0.74</span> · complete <span class="am">0.66</span> → <span class="rd">BELOW 0.80, reloop</span></div></div>
+          <div class="ln"><span class="gut">08</span><div><span class="dim">[retrieve·hop2]</span> <span class="ok">+3 chunks</span> <span class="dim">— "elastic net", transcript 3.4 @00:48:12</span></div></div>
+          <div class="ln"><span class="gut">09</span><div><span class="dim">[evaluate]</span> faithful <span class="ok">0.92</span> · relevant <span class="ok">0.89</span> · complete <span class="ok">0.84</span> → <span class="ok">PASS ✓</span></div></div>
+          <div class="ln" style="margin-top:6px"><span class="gut">10</span><div><span class="pr">answer&gt;</span></div></div>
+          <div style="padding:6px 0 0 28px">
+            <div class="answer" style="font-size:14.5px">
+              Both penalise large coefficients, but differently. <b>L2 (Ridge)</b> adds the squared magnitude — it shrinks weights smoothly toward zero but rarely <i>to</i> zero, good when most features matter<span class="cite">1</span>. <b>L1 (Lasso)</b> adds the absolute magnitude — its diamond constraint drives some weights exactly to zero, doing <b>feature selection</b><span class="cite">2</span>. Use L1 when you expect sparsity; L2 for correlated features; <b>elastic net</b> blends both<span class="cite">3</span>.
+            </div>
+          </div>
+          <div class="ln" style="margin-top:8px"><span class="gut">11</span><div><span class="pr">germayne&gt;</span> <span style="border-left:6px solid var(--green);animation:none">▍</span><span class="dim">ask a follow-up, or</span> <span class="kbd">/quiz</span> <span class="kbd">/eli5</span> <span class="kbd">/save</span></div></div>
+        </div>
+
+        <!-- eval + sources -->
+        <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+          <div class="rh" style="padding:0;border:0">▦ evaluation · pass 2</div>
+          <div class="gauge"><div class="ring" style="--p:86;width:72px;height:72px"><b style="font-size:17px">86</b></div>
+            <div class="bars">
+              <div class="bar"><div class="lab"><span>faith</span><b>0.92</b></div><div class="track"><div class="fill" style="width:92%"></div></div></div>
+              <div class="bar"><div class="lab"><span>rel</span><b>0.89</b></div><div class="track"><div class="fill" style="width:89%"></div></div></div>
+              <div class="bar amber"><div class="lab"><span>compl</span><b>0.84</b></div><div class="track"><div class="fill" style="width:84%"></div></div></div>
+            </div>
+          </div>
+          <div class="rh" style="padding:8px 0 0;border-top:1px solid var(--line-soft)">⌥ sources · 3</div>
+          <div class="source"><div class="meta"><span class="id">1</span> <span class="mod">mod 3.4</span> · lesson.md</div><div class="snip">"Ridge adds an L2 penalty λ∑βⱼ²; it shrinks coefficients but keeps all features…"</div></div>
+          <div class="source"><div class="meta"><span class="id">2</span> <span class="mod">ISLR</span> · ch.6.2</div><div class="snip">"The lasso… yields sparse models that involve only a subset of the variables."</div></div>
+          <div class="source"><div class="meta"><span class="id">3</span> <span class="mod">mod 3.4</span> · transcript 00:48</div><div class="snip">"…so elastic net combines both penalties when you've got correlated predictors."</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:8px">
+      <div class="annlist">
+        <div class="ann"><span class="b">A</span><div><b>Coverage map</b> doubles as scope control — click modules to constrain retrieval; "hot" = active.</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">B</span><div><b>Interleaved stream</b> — reasoning logs and the final answer share one scrollback, with slash-commands (<span class="kbd">/quiz</span> <span class="kbd">/eli5</span>).</div></div>
+      </div>
+      <div class="annlist">
+        <div class="ann"><span class="b">C</span><div><b>Best for:</b> power users; densest view. Sources + gauge always visible. Most "Matrix" of the three.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPONENTS ============ -->
+<section id="components">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">06 / SHARED PARTS</div>
+      <h2>The atoms — mix &amp; match across any direction.</h2>
+      <p class="mono-note">These work in all three layouts. The two toggles you asked for, plus the learning extras. Flip the <span class="hl">Matrix ⇄ Clinical</span> switch up top to see both themes live on this very page.</p>
+    </div>
+
+    <div class="grid g2">
+      <!-- THEME DUO -->
+      <div class="card" style="padding:22px">
+        <h3>① Dual theme — Matrix &amp; Clinical</h3>
+        <p class="mono-note" style="margin:8px 0 16px">Same components, two moods. Dark = phosphor-green terminal w/ digital rain. Light = calm, clinical, glare-free for long reading sessions.</p>
+        <div class="grid g2">
+          <div style="border:1px solid var(--line);border-radius:11px;overflow:hidden">
+            <div style="background:oklch(0.15 0.018 152);padding:12px;color:oklch(0.88 0.21 150);font-size:11px">
+              <b style="color:oklch(0.92 0.05 150)">◖ Matrix</b><br/><span style="color:oklch(0.74 0.06 150)">green-on-black · mono · rain</span>
+              <div style="margin-top:8px;height:6px;border-radius:4px;background:linear-gradient(90deg,oklch(0.55 0.16 152),oklch(0.88 0.21 150))"></div>
+            </div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:11px;overflow:hidden">
+            <div style="background:oklch(0.975 0.006 220);padding:12px;color:oklch(0.55 0.13 165);font-size:11px">
+              <b style="color:oklch(0.28 0.02 230)">◗ Clinical</b><br/><span style="color:oklch(0.46 0.02 230)">soft white · airy · calm</span>
+              <div style="margin-top:8px;height:6px;border-radius:4px;background:linear-gradient(90deg,oklch(0.7 0.08 168),oklch(0.55 0.13 165))"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LLM SETTINGS -->
+      <div class="card" style="padding:22px">
+        <h3>② LLM backend — pill + settings drawer</h3>
+        <p class="mono-note" style="margin:8px 0 16px">Quick pill in the header; full detail here with privacy / latency / cost trade-offs.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="source" style="flex-direction:row;align-items:center;gap:12px"><span class="pill" style="border-color:var(--green);color:var(--green)"><span class="sd"></span> selected</span><div><b style="color:var(--txt);font-size:12px">Ollama · local</b><div class="snip">private · free · 8–14B · no data leaves device</div></div></div>
+          <div class="source" style="flex-direction:row;align-items:center;gap:12px"><span class="pill">○</span><div><b style="color:var(--txt);font-size:12px">Alt LLM · LM Studio / vLLM</b><div class="snip">bring-your-own endpoint · custom models</div></div></div>
+          <div class="source" style="flex-direction:row;align-items:center;gap:12px"><span class="pill">○</span><div><b style="color:var(--txt);font-size:12px">Cloud API · GPT/Claude/Gemini</b><div class="snip">strongest reasoning · paid · key required</div></div></div>
+        </div>
+      </div>
+
+      <!-- CONCEPT GRAPH -->
+      <div class="card" style="padding:22px">
+        <h3>③ Concept / prerequisite graph</h3>
+        <p class="mono-note" style="margin:8px 0 16px">Every topic sits in a prerequisite web — see what you should know first, jump to it.</p>
+        <div style="position:relative;height:140px">
+          <svg class="gsvg" viewBox="0 0 400 140" preserveAspectRatio="none" style="position:absolute">
+            <path d="M70,40 C120,40 130,70 170,70"/><path d="M70,100 C120,100 130,76 170,74"/><path d="M230,70 C280,70 290,50 330,50"/>
+          </svg>
+          <div class="node" style="left:14%;top:28%;min-width:0;padding:6px 9px"><b style="font-size:10px">Probability</b></div>
+          <div class="node" style="left:14%;top:74%;min-width:0;padding:6px 9px"><b style="font-size:10px">Linear models</b></div>
+          <div class="node on" style="left:50%;top:50%;min-width:0;padding:6px 9px"><b style="font-size:10px">Regularization</b></div>
+          <div class="node" style="left:84%;top:36%;min-width:0;padding:6px 9px"><b style="font-size:10px">Elastic net</b></div>
+        </div>
+      </div>
+
+      <!-- LEARNER EXTRAS -->
+      <div class="card" style="padding:22px">
+        <h3>④ Learning extras</h3>
+        <p class="mono-note" style="margin:8px 0 16px">From your picks — all available on demand from any answer.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <span class="pill">⇄ Difficulty: ELI5 ↔ rigorous</span>
+          <span class="pill">∑ LaTeX / worked examples</span>
+          <span class="pill">＋ Save to study notebook</span>
+          <span class="pill">⊞ Module coverage map</span>
+          <span class="pill">◷ Concept graph</span>
+          <span class="pill">/quiz auto-generated</span>
+        </div>
+        <div style="margin-top:16px;padding:13px 15px;border:1px dashed var(--line);border-radius:10px">
+          <div class="seg" style="margin-bottom:8px"><span>ELI5</span><span class="on">Standard</span><span>Rigorous</span></div>
+          <div class="mono-note">∑ &nbsp; <span class="hl">Error = Bias² + Variance + σ²</span> &nbsp;— rendered live from the answer.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RECOMMENDATION / NEXT ============ -->
+<section style="border-bottom:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">07 / WHAT I'D DO + YOUR CALL</div>
+      <h2>The plan we've landed on.</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card ps good">
+        <span class="tag">★ Confirmed for prototype</span>
+        <p>One app, <b>three view modes</b> behind a VIEW switch — <b>Reading (Dir A)</b> as the default, with <b>Canvas (B)</b> and <b>Console (C)</b> a click away. Every answer is <b>multi-modal</b>: Explain · Visualize · Code · Math, so the ML is visible under the hood, not just described. Voice &amp; tone modelled on <b>Germayne</b>.</p>
+      </div>
+      <div class="card ps" style="border-color:var(--line)">
+        <span class="tag" style="color:var(--cyan)">⌥ Still open — your call</span>
+        <p style="color:var(--txt)">
+          1 · Ship <b>all three views</b> now, or <b>Reading + Canvas</b> first and add Console later?<br/>
+          2 · Are <b>Explain / Visualize / Code / Math</b> the right tabs — or add <b>Notebook / Quiz</b>?<br/>
+          3 · Real transcript/textbook files to drop in (you said not yet — fine, I'll use authentic stand-ins).<br/>
+          4 · Final brand: keep <span class="hl">GERMAYNE.exe</span>, or one of the alternates in chat?
+        </p>
+      </div>
+    </div>
+    <div class="cta-row" style="margin-top:30px">
+      <a href="#thesis" class="btn primary">▲ Back to top</a>
+      <a href="#pipeline" class="btn">Re-read the loop</a>
+    </div>
+  </div>
+</section>
+
+<div class="wrap foot">
+  <div>GERMAYNE.exe · concept directions · agentic RAG for 5M-Data ML modules 3.1–3.10</div>
+  <div>Static concept screens for review — not yet wired. Approve a direction and I'll build the interactive prototype.</div>
+</div>
+
+<!--SECTIONS-->
+
+<script>
+/* ---------- digital rain ---------- */
+(function(){
+  const c=document.getElementById('rain'),x=c.getContext('2d');
+  let w,h,cols,drops,fs=15;
+  const glyphs="01<>[]{}=+*ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶ7931∑∂∇μσβθλ".split("");
+  function init(){
+    w=c.width=innerWidth;h=c.height=innerHeight;
+    cols=Math.floor(w/fs);drops=Array(cols).fill(0).map(()=>Math.random()*-50);
+  }
+  function draw(){
+    const theme=document.documentElement.getAttribute('data-theme');
+    if(theme!=='matrix'){x.clearRect(0,0,w,h);requestAnimationFrame(draw);return;}
+    x.fillStyle="rgba(8,16,11,0.10)";x.fillRect(0,0,w,h);
+    x.font=fs+"px JetBrains Mono, monospace";
+    for(let i=0;i<cols;i++){
+      const t=glyphs[Math.floor(Math.random()*glyphs.length)];
+      const y=drops[i]*fs;
+      x.fillStyle = Math.random()>0.975 ? "rgba(190,255,210,0.9)" : "rgba(50,220,130,0.55)";
+      x.fillText(t,i*fs,y);
+      if(y>h&&Math.random()>0.985)drops[i]=0;
+      drops[i]+=0.22;
+    }
+    requestAnimationFrame(draw);
+  }
+  addEventListener('resize',init);init();draw();
+})();
+/* ---------- theme switch ---------- */
+document.querySelectorAll('[data-set-theme]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const t=b.getAttribute('data-set-theme');
+    document.documentElement.setAttribute('data-theme',t);
+    document.querySelectorAll('[data-set-theme]').forEach(o=>o.setAttribute('aria-pressed', o===b));
+    localStorage.setItem('concept-theme',t);
+  });
+});
+(function(){const s=localStorage.getItem('concept-theme');if(s){document.querySelector(`[data-set-theme="${s}"]`)?.click();}})();
+</script>
+</body>
+</html>

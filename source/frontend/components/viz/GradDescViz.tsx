@@ -269,7 +269,7 @@ export function GradDescViz({ interactive = true }: Props) {
       )}
 
       <canvas ref={canvasRef} width={W} height={H}
-        style={{ width: "100%", maxWidth: W, height: "auto", display: "block", borderRadius: "var(--r-sm)" }}
+        style={{ width: "100%", height: "auto", display: "block", borderRadius: "var(--r-sm)" }}
         aria-label="Gradient descent optimiser visualisation"
         role="img"
       />

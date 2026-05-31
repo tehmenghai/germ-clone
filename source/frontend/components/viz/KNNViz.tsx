@@ -191,7 +191,6 @@ export function KNNViz({ interactive = true }: Props) {
         onClick={handleCanvasClick}
         style={{
           width: "100%",
-          maxWidth: W,
           height: "auto",
           display: "block",
           cursor: interactive ? "crosshair" : "default",

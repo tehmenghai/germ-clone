@@ -93,7 +93,7 @@ export function RegularizationViz({ interactive = true }: Props) {
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: "100%", maxWidth: W, height: "auto", display: "block" }}
+        style={{ width: "100%", height: "auto", display: "block" }}
         aria-label={`Regularization coefficient paths — ${mode}`}
         role="img"
       >

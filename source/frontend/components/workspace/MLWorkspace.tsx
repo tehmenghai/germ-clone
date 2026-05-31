@@ -1,169 +1,240 @@
 "use client";
 
-import type { StageEvent } from "@/lib/mock-stream";
-import { AnswerProse } from "./AnswerProse";
+import { useState } from "react";
 import { VizPanel } from "@/components/viz/VizPanel";
-import { ConsoleChips } from "./ConsoleChips";
+
+// Math equations per topic — mirrors content.jsx TOPICS[].math
+const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
+  "bias-variance": [
+    { eq: "Error = Bias² + Variance + ε", note: "Total generalisation error decomposition" },
+    { eq: "Bias = E[ŷ] − y", note: "Systematic offset of predictions from truth" },
+    { eq: "Variance = E[(ŷ − E[ŷ])²]", note: "Sensitivity to training-set fluctuations" },
+  ],
+  "regularization": [
+    { eq: "L(w) = MSE(w) + λΩ(w)", note: "Regularised objective adds penalty term Ω" },
+    { eq: "Ω_L1 = Σ|wᵢ|", note: "Lasso (L1): produces sparse weights — some go to exactly 0" },
+    { eq: "Ω_L2 = Σwᵢ²", note: "Ridge (L2): shrinks all weights; none reach 0" },
+  ],
+  "knn": [
+    { eq: "ŷ = mode({yᵢ : xᵢ ∈ Nₖ(x)})", note: "Predicted class = majority vote of k nearest neighbours" },
+    { eq: "d(x, xᵢ) = √Σ(xⱼ − xᵢⱼ)²", note: "Euclidean distance (most common metric)" },
+  ],
+  "gradient-descent": [
+    { eq: "w ← w − α∇J(w)", note: "Single gradient step; α is the learning rate" },
+    { eq: "J(w) = (1/n)Σℒ(yᵢ, f(xᵢ;w))", note: "Average loss over training set" },
+    { eq: "∇J(w) = (2/n)Xᵀ(Xw − y)", note: "Gradient of MSE loss (linear regression)" },
+  ],
+};
+
+function detectTopic(query: string): string | null {
+  const q = query.toLowerCase();
+  if (q.includes("bias") || q.includes("variance") || q.includes("overfit")) return "bias-variance";
+  if (q.includes("regular") || q.includes("lasso") || q.includes("ridge")) return "regularization";
+  if (q.includes("knn") || q.includes("nearest")) return "knn";
+  if (q.includes("gradient") || q.includes("descent") || q.includes("sgd")) return "gradient-descent";
+  return null;
+}
 
 interface MLWorkspaceProps {
-  events: StageEvent[];
-  isRunning: boolean;
   query: string;
+  compact?: boolean;
 }
 
-export function MLWorkspace({ events, isRunning, query }: MLWorkspaceProps) {
-  const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");
-
-  if (!query && !isRunning) {
-    return <WelcomeState />;
-  }
+export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
+  const [wsTab, setWsTab] = useState<"visualize" | "math">("visualize");
+  const topicId = query ? detectTopic(query) : null;
+  const math = topicId ? TOPIC_MATH[topicId] : null;
 
   return (
-    <main
-      className="flex-1 overflow-y-auto"
-      style={{ padding: "28px 32px", maxWidth: 860 }}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        borderLeft: "1px solid var(--line-soft)",
+        background: "color-mix(in oklab, var(--panel) 35%, transparent)",
+        overflow: "hidden",
+      }}
     >
-      {/* Query echo */}
-      <div className="mb-6">
-        <p className="font-mono" style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)", letterSpacing: "0.08em", marginBottom: 6 }}>
-          QUERY
-        </p>
-        <p className="font-mono" style={{ fontSize: 15, color: "var(--txt)" }}>
-          {query}
-        </p>
+      {/* Workspace header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 18px",
+          height: 42,
+          borderBottom: "1px solid var(--line-soft)",
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "1.5px",
+            textTransform: "uppercase",
+            color: "var(--txt-faint)",
+          }}
+        >
+          ⊞ ML WORKSPACE
+        </span>
+        {query && topicId && (
+          <span
+            style={{
+              fontSize: 12.5,
+              color: "var(--txt-dim)",
+              fontFamily: "'Newsreader', Georgia, serif",
+              fontStyle: "italic",
+              flex: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {query}
+          </span>
+        )}
+        {topicId && (
+          <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
+            {(["visualize", "math"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setWsTab(tab)}
+                style={{
+                  fontSize: 11,
+                  padding: "4px 10px",
+                  borderRadius: "var(--r-sm)",
+                  border: "1px solid",
+                  borderColor: wsTab === tab ? "var(--green-deep)" : "transparent",
+                  background: wsTab === tab ? "var(--panel-2)" : "transparent",
+                  color: wsTab === tab ? "var(--green)" : "var(--txt-faint)",
+                  cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                }}
+              >
+                {tab === "visualize" ? "Visualize" : "Math"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Thinking indicator */}
-      {isRunning && !composeEvent && (
-        <div
-          role="status"
-          aria-label="Thinking"
-          className="flex items-center gap-2 mb-6"
-        >
-          <ThinkingDots />
-          <span className="font-mono" style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)" }}>
-            Pipeline running…
-          </span>
-        </div>
-      )}
-
-      {/* Answer */}
-      {composeEvent?.answer_md && (
-        <>
-          <AnswerProse
-            markdown={composeEvent.answer_md}
-            citations={composeEvent.citations ?? []}
-          />
-          <ConsoleChips />
-        </>
-      )}
-
-      {/* Visualisation — rendered below answer when compose is done */}
-      {composeEvent && <VizPanel query={query} />}
-    </main>
-  );
-}
-
-const TOPIC_CHIPS: Array<{ mod: string; label: string }> = [
-  { mod: "3.3", label: "Why does my decision tree overfit?" },
-  { mod: "3.4", label: "L1 vs L2 regularization — when to use each?" },
-  { mod: "3.2", label: "How do I choose k in KNN?" },
-  { mod: "3.7", label: "What does the learning rate do in gradient descent?" },
-];
-
-function WelcomeState() {
-  return (
-    <main
-      className="flex-1 overflow-y-auto"
-      style={{ padding: "26px clamp(18px, 4vw, 54px) 30px", display: "flex", flexDirection: "column", gap: 26 }}
-    >
-      <div style={{ maxWidth: 760, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 18, paddingTop: 18 }}>
-        {/* Dedication line */}
-        <div style={{ fontSize: 11, color: "var(--txt-faint)", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 16, height: 1, background: "var(--green-deep)", display: "block" }} />
-          a digital twin of your instructor, germayne
-        </div>
-
-        {/* Serif headline */}
-        <h1
-          className="font-serif"
-          style={{ fontFamily: "'Newsreader', Georgia, serif", fontWeight: 500, fontSize: "clamp(28px, 4vw, 42px)", lineHeight: 1.08, letterSpacing: "-0.5px", color: "var(--txt)" }}
-        >
-          Ask me anything from<br />modules 3.1 – 3.10.
-        </h1>
-
-        {/* Lede */}
-        <p style={{ color: "var(--txt-dim)", maxWidth: "60ch", fontSize: 13.5, lineHeight: 1.6 }}>
-          I answer grounded in the course transcripts &amp; textbooks — every answer comes with the{" "}
-          <strong style={{ fontWeight: 600 }}>visual and the math</strong> so you actually see how the ML works.
-        </p>
-
-        {/* Topic chips */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 6 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: "2px", textTransform: "uppercase", color: "var(--green-2)", marginBottom: 2 }}>
-            try one
-          </div>
-          {TOPIC_CHIPS.map((chip) => (
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {!topicId ? (
+          <EmptyState />
+        ) : wsTab === "visualize" ? (
+          <div style={{ padding: "18px 20px" }}>
             <div
-              key={chip.label}
               style={{
-                textAlign: "left",
-                border: "1px solid var(--line)",
-                background: "var(--panel)",
-                borderRadius: 11,
-                padding: "13px 15px",
-                color: "var(--txt)",
-                fontSize: 13,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                cursor: "default",
-                transition: "border-color 0.15s, transform 0.15s",
+                border: "1px solid var(--line-soft)",
+                borderRadius: "var(--r-lg)",
+                overflow: "hidden",
+                background: "var(--bg-2)",
               }}
             >
-              <span style={{
-                fontSize: 9.5,
-                color: "var(--on-green)",
-                background: "var(--green)",
-                borderRadius: 5,
-                padding: "2px 6px",
-                fontWeight: 700,
-                flexShrink: 0,
-              }}>
-                {chip.mod}
-              </span>
-              {chip.label}
-              <span style={{ marginLeft: "auto", color: "var(--txt-faint)" }}>↗</span>
+              <div
+                style={{
+                  padding: "10px 16px",
+                  borderBottom: "1px solid var(--line-soft)",
+                  fontSize: 11,
+                  color: "var(--txt-faint)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  {topicId.replace(/-/g, " ")}
+                </span>
+                <span style={{ fontStyle: "italic" }}>drag the control — it&apos;s live</span>
+              </div>
+              <div>
+                <VizPanel query={query} />
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: "18px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {math?.map(({ eq, note }, i) => (
+              <div key={i}>
+                <div
+                  style={{
+                    fontFamily: "'Newsreader', Georgia, serif",
+                    fontSize: "var(--font-eq)",
+                    fontStyle: "italic",
+                    textAlign: "center",
+                    border: "1px solid var(--line-soft)",
+                    borderRadius: 10,
+                    background: "var(--bg-2)",
+                    padding: "14px 18px",
+                    color: "var(--txt)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {eq}
+                </div>
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--txt-dim)",
+                    marginTop: 6,
+                    paddingLeft: 4,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {note}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
 
-function ThinkingDots() {
+function EmptyState() {
   return (
-    <span aria-hidden className="flex gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: "50%",
-            background: "var(--green)",
-            display: "inline-block",
-            animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes pulse {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-    </span>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 24px",
+        gap: 14,
+        border: "1px dashed var(--line)",
+        borderRadius: "var(--r-lg)",
+        margin: 20,
+        textAlign: "center",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "'Newsreader', Georgia, serif",
+          fontSize: 54,
+          color: "var(--green-deep)",
+          opacity: 0.5,
+          lineHeight: 1,
+        }}
+      >
+        ∂
+      </span>
+      <p style={{ fontSize: 13.5, color: "var(--txt-dim)", fontWeight: 500 }}>
+        The <strong style={{ color: "var(--txt)" }}>ML workspace</strong> lands here.
+      </p>
+      <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "22ch", lineHeight: 1.5 }}>
+        Every answer comes with an interactive plot and the math — ask a question to light it up.
+      </p>
+    </div>
   );
 }

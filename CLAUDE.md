@@ -5,7 +5,9 @@
 AI ML tutor styled as a "digital twin" of an instructor. Students ask ML questions
 (modules 3.1–3.10); a self-correcting agentic RAG pipeline (route → rewrite → retrieve →
 ReAct → reflect → evaluate → re-retrieve → compose) grounds every answer in the course corpus.
-Answers are rendered with an interactive visualization and the underlying math. Two view modes:
+Answers are rendered with an interactive visualization and the underlying math. 
+
+Two view modes:
 **Reality** (reading) and **Matrix** (console/terminal).
 
 **Team build (4 devs):** Lik Hong (Lead, UI/UX), Ben (Ingest & Corpus), Meng Hai (RAG engine + CI), Lanson (Langflow design + eval).

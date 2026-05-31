@@ -2,10 +2,15 @@
 
 import { useEffect, useRef } from "react";
 
-// Matches handoff spec: 8px JetBrains Mono, column spacing fs*2.2, drop speed 0.08/frame,
-// fade trail rgba(8,16,11,0.025), two opacity tiers (40% standard, 55% rare flash)
+// Full-width katakana + digits, dense columns, fast cascade with bright leading char
 const CHARS =
-  "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ∂∑∫√≈±×÷01∞αβγδεζηθ";
+  "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789";
+
+interface Drop {
+  y: number;       // current row (float)
+  speed: number;   // rows per frame
+  length: number;  // trail length in chars
+}
 
 export function DigitalRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,49 +21,98 @@ export function DigitalRain() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const FS = 8;
-    const COL_W = Math.ceil(FS * 2.2);
-    // fractional drop positions per column (handoff: 0.08 units/frame)
-    let drops: number[] = [];
+    const FS = 16;
+    const COL_W = 18;
+    let drops: Drop[] = [];
     let animId: number;
+    let frameCount = 0; // used for 50% speed reduction via frame-skip
 
     function resize() {
       if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
+      ctx!.scale(dpr, dpr);
+
       const cols = Math.floor(canvas.offsetWidth / COL_W);
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      drops = Array(cols).fill(0).map(() => Math.random() * -(canvas.height / FS));
+      drops = Array.from({ length: cols }, () => ({
+        y: -Math.floor(Math.random() * 30),
+        speed: 0.3 + Math.random() * 0.5,
+        length: 8 + Math.floor(Math.random() * 20),
+      }));
+
+      // Pure black background on resize
+      ctx!.fillStyle = "#000";
+      ctx!.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
     }
 
+    const isLight = () =>
+      document.documentElement.getAttribute("data-theme") === "clinical";
+
     resize();
-    const ro = new ResizeObserver(resize);
+    const ro = new ResizeObserver(() => {
+      ctx!.setTransform(1, 0, 0, 1, 0, 0);
+      resize();
+    });
     ro.observe(canvas);
+
+    // Watch theme changes — clear canvas immediately when switching to light
+    const mo = new MutationObserver(() => {
+      if (isLight() && canvas) {
+        ctx!.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      }
+    });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
     function draw() {
       if (!canvas || !ctx) return;
-      // Fade trail — handoff value
-      ctx.fillStyle = "rgba(8,16,11,0.025)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // No rain in light/clinical mode
+      if (isLight()) { animId = requestAnimationFrame(draw); return; }
+
+      frameCount++;
+      // 50% speed: only advance drops every other frame
+      const advance = frameCount % 2 === 0;
+
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+
+      // Slower fade so trail lingers longer
+      ctx.fillStyle = "rgba(0,0,0,0.05)";
+      ctx.fillRect(0, 0, w, h);
 
       ctx.font = `${FS}px "JetBrains Mono", monospace`;
 
       for (let i = 0; i < drops.length; i++) {
-        const char = CHARS[Math.floor(Math.random() * CHARS.length)];
+        const drop = drops[i];
         const x = i * COL_W;
-        const y = Math.floor(drops[i]) * FS;
+        const headY = Math.floor(drop.y) * FS;
 
-        // Rare bright flash (55%) vs standard (40%) — per handoff
-        const flash = Math.random() > 0.93;
-        ctx.fillStyle = flash
-          ? "rgba(52, 224, 138, 0.55)"
-          : "rgba(52, 224, 138, 0.40)";
-        ctx.fillText(char, x, y);
-
-        // Reset when column exits bottom
-        if (y > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
+        // Trail — dimmer alpha (0.28 max)
+        for (let t = 1; t < drop.length; t++) {
+          const ty = headY - t * FS;
+          if (ty < 0) continue;
+          const fade = 1 - t / drop.length;
+          const alpha = Math.max(0.02, fade * 0.28);
+          ctx.fillStyle = `rgba(0,180,70,${alpha.toFixed(2)})`;
+          ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], x, ty);
         }
-        drops[i] += 0.08;
+
+        // Leading char — dimmer than before (was #afffce/#00e050)
+        if (headY >= 0 && headY <= h) {
+          ctx.fillStyle = Math.random() > 0.5 ? "rgba(0,210,90,0.65)" : "rgba(0,160,60,0.55)";
+          ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], x, headY);
+        }
+
+        if (advance) {
+          drop.y += drop.speed;
+        }
+
+        // Reset when head exits bottom
+        if (headY > h + drop.length * FS) {
+          drop.y = -Math.floor(Math.random() * 20);
+          drop.speed = 0.3 + Math.random() * 0.5;
+          drop.length = 8 + Math.floor(Math.random() * 20);
+        }
       }
 
       animId = requestAnimationFrame(draw);
@@ -68,6 +122,7 @@ export function DigitalRain() {
     return () => {
       cancelAnimationFrame(animId);
       ro.disconnect();
+      mo.disconnect();
     };
   }, []);
 
@@ -76,12 +131,11 @@ export function DigitalRain() {
       ref={canvasRef}
       aria-hidden
       style={{
-        position: "fixed",
+        position: "absolute",
         inset: 0,
         width: "100%",
         height: "100%",
         zIndex: 0,
-        opacity: 1,
         pointerEvents: "none",
       }}
     />

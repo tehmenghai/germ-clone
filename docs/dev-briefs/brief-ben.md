@@ -57,6 +57,22 @@ Meng Hai — do not edit it.
 [Task]
 ```
 
+## Coordination
+
+**You are on the critical path. Meng Hai cannot build real retrieval until your pgvector store is live.**
+
+| Action | When | Who |
+|---|---|---|
+| Publish `schemas/retrieval.py` as a committed stub | Day 1, Phase 1 | → Tell Meng Hai it's ready so he can build retrieval calls against it |
+| Neon branch + Alembic migration merged | Phase 1 complete | → Tell Meng Hai the schema is stable so he can wire `repository/` calls |
+| Real corpus seeded (4 demo topics in pgvector) | Phase 2 | → Tell Meng Hai retrieval is queryable so he can test the live pipeline |
+| Confirm real corpus formats with Lanson | Before writing loaders | ← Chase Lanson — don't build loaders against assumed formats |
+| Any change to `schemas/retrieval.py` after Meng Hai starts | Anytime | → Tell Meng Hai before opening the PR, not after |
+
+**Chase:** If you need something from Lanson (corpus format confirmation) and haven't heard back within a day, ping him directly — your loader work is blocked on that answer.
+
+---
+
 ## Stack reminders
 
 - Python 3.12, FastAPI async, SQLAlchemy 2 async, Alembic, `uv`

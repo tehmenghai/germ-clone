@@ -36,10 +36,11 @@ html, body {
 }
 
 /* Answer prose typography */
-.answer-prose h2 { font-size: 18px; font-weight: 600; color: var(--txt); margin: 20px 0 8px; line-height: 1.3; }
-.answer-prose h3 { font-size: 15px; font-weight: 600; color: var(--txt-dim); margin: 16px 0 6px; }
-.answer-prose p  { margin-bottom: 10px; }
-.answer-prose strong { color: var(--txt); font-weight: 600; }
+.answer-prose { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13.5px; }
+.answer-prose h2 { font-size: 15px; font-weight: 500; color: var(--txt); margin: 18px 0 7px; line-height: 1.3; }
+.answer-prose h3 { font-size: 13px; font-weight: 500; color: var(--txt-dim); margin: 14px 0 5px; }
+.answer-prose p  { margin-bottom: 9px; }
+.answer-prose strong { color: var(--txt); font-weight: 400; }
 .answer-prose code { font-family: var(--font-mono, monospace); font-size: 13px; background: var(--panel); padding: 1px 5px; border-radius: 4px; color: var(--cyan); }
 
 /* Citation superscript links */
@@ -77,6 +78,13 @@ html, body {
 }
 @keyframes fade {
   from { opacity: 0; }
+}
+@keyframes dashMarch {
+  to { stroke-dashoffset: -20; }
+}
+@keyframes nodePulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%       { transform: translate(-50%, -50%) scale(1.12); }
 }
 @keyframes fadein {
   from { opacity: 0; transform: translateY(8px); }

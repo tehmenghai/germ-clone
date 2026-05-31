@@ -81,6 +81,24 @@ evaluate2, compose — these must not be renamed without a breaking-change heads
 [Task]
 ```
 
+## Coordination
+
+**You are the centre of the critical path. Ben feeds you; Lik Hong and Lanson both wait on you.**
+
+| Action | When | Who |
+|---|---|---|
+| Publish `schemas/events.py` as a committed stub | Day 1, Phase 1 | → Tell Lik Hong it's ready — he starts building the frontend immediately against it |
+| Mock `/ask` endpoint live on :8007 | Phase 1 | → Tell Lik Hong the mock streamer is up so he can test against a real server, not just the local mock |
+| Live pipeline swapped in (same SSE shape) | Phase 2 | → Tell Lik Hong the live engine is ready so he can flip `lib/api.ts` from mock to live |
+| Live pipeline stable enough to run evals | Phase 2 | → Tell Lanson the pipeline is queryable so he can run the golden-set harness against it |
+| Any change to `schemas/events.py` stage keys or compose payload | Anytime | → Tell Lik Hong before opening the PR — this is a breaking change for him |
+| `schemas/retrieval.py` schema or fields | Anytime | ← Chase Ben if fields you need aren't there — don't add them yourself |
+| `flows/ml-tutor.flow.json` stage list or re-loop condition changes | Anytime | ← Chase Lanson to flag it to you before he commits — hold him to the handoff rule |
+
+**Chase:** If Ben's schema stub or Lanson's flow JSON haven't landed by the time you need them, don't unblock yourself by guessing field names. Ping them directly.
+
+---
+
 ## Stack reminders
 
 - LangGraph for the runtime graph. Langflow is Lanson's design tool — not your dependency.

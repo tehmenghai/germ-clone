@@ -142,6 +142,42 @@ LangGraph graph in `rag/`. Managed by:
 - Eval (Lanson's `evaluation/`) is the feedback loop that catches divergence: if the LangGraph
   runtime's f/r/c drifts from the flow's intent, the golden-set gate fails in CI.
 
+### Dependency flow — who is waiting for whom
+
+The critical path is linear. Everything off it can be built in parallel.
+
+```
+BEN (Ingest & Corpus)
+  └── Neon schema + Alembic migrations + pgvector store populated
+        │
+        │  Ben must land first — RAG engine has nothing to query without a live store
+        ▼
+MENG HAI (RAG Engine + CI)
+  └── LangGraph pipeline + f/r/c evaluator + SSE stream live on :8007
+        │
+        │  Meng Hai must stabilise schemas/events.py + pipeline stage keys
+        ├─────────────────────────────────────────┐
+        ▼                                         ▼
+LIK HONG (Frontend)                        LANSON (Eval)
+  Consumes live SSE stream                   Runs golden-set harness against
+  Flips mock-stream.ts → live import         live pipeline + real corpus
+```
+
+**Critical path:** Ben's corpus → Meng Hai's pipeline → Lik Hong's live wiring + Lanson's CI eval
+
+**What can be built in parallel (no blocker):**
+
+| Stream | Parallel work |
+|---|---|
+| Lik Hong | Full UI shell, both themes, all 4 visualisations, pipeline rail, settings drawer — all wired to `mock-stream.ts`. No dependency on Ben or Meng Hai until live SSE swap. |
+| Lanson | Langflow flow design, prompt authoring, `flows/ml-tutor.flow.json` export, `flows/README.md` node→module map, eval harness skeleton + golden pairs. No dependency on a live pipeline to write the harness — only to *run* it. |
+| Meng Hai | CI scaffold, lint/test pipeline, deployment target — all independent of Ben's corpus being populated. |
+| Ben | Loaders, chunker, embedder, Alembic migrations — independent of the RAG engine and frontend. |
+
+**The pinch point is `schemas/`** — `events.py` (Meng Hai → Lik Hong) and `retrieval.py` (Ben → Meng Hai) are the two contracts that, if changed late, ripple across streams. Both must be published as stubs on Day 1 of Phase 1 so downstream streams never block.
+
+---
+
 ### Per-stream detail
 
 **Lead — Frontend UI/UX**

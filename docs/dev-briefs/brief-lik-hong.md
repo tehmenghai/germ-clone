@@ -79,6 +79,22 @@ until I say the engine is ready.
 [Task]
 ```
 
+## Coordination
+
+**You are at the end of the critical path for live wiring, but your parallel work (UI, viz, mock stream) has no blockers.**
+
+| Action | When | Who |
+|---|---|---|
+| `schemas/events.py` stub published | Day 1, Phase 1 | ← Chase Meng Hai if it hasn't landed — your mock-stream.ts type definitions depend on it |
+| Mock `/ask` endpoint live on :8007 | Phase 1 | ← Chase Meng Hai — useful for testing the frontend against a real server before the engine is complete |
+| Live pipeline ready to consume | Phase 2 | ← Chase Meng Hai — this is the one flip that takes you from mock to real |
+| Any change to `schemas/events.py` after you've started | Anytime | ← Meng Hai owes you a heads-up before his PR opens. If you spot a field change without warning, flag it back to him immediately |
+| Coverage map in Matrix mode (queries Ben's `documents` table) | Phase 2 | ← Chase Ben to confirm the `documents` table schema is stable before wiring that query |
+
+**Chase:** Meng Hai's `schemas/events.py` stub on Day 1 is your only Phase 1 dependency. If it slips, everything else (shell, themes, visualisations) still builds — but flag it early so it doesn't delay the mock integration.
+
+---
+
 ## Stack reminders
 
 - Next.js 14 App Router, TypeScript strict, Tailwind, pnpm.

@@ -70,6 +70,22 @@ contract must be flagged to Meng Hai before it is committed. Do not silently cha
 [Task]
 ```
 
+## Coordination
+
+**You have no hard blockers in Phase 1. Your Phase 2 eval runs depend on Ben's corpus and Meng Hai's pipeline both being live.**
+
+| Action | When | Who |
+|---|---|---|
+| Confirm real corpus formats with Ben | Before he writes loaders, Phase 1 | → Tell Ben the expected formats (transcript, markdown, notebook etc.) — he can't write loaders without this |
+| `flows/ml-tutor.flow.json` + `flows/prompts/` first export | Phase 1 | → Tell Meng Hai it's ready so he can start re-implementing as LangGraph |
+| Any change to stage list, re-loop threshold, or prompt contract | Anytime | → Tell Meng Hai before you commit — not after. This is the handoff rule |
+| `flows/README.md` node→module map updated | Every flow shape change | → Keep Meng Hai's implementation in sync — don't let this drift |
+| Ben's corpus seeded + Meng Hai's pipeline live | Phase 2 | ← Chase both before attempting to run golden-set evals against the live system |
+
+**Chase:** If you haven't heard from Ben about corpus format confirmation, ping him — your Phase 1 output (loader-compatible formats) feeds directly into his work. If Meng Hai's pipeline isn't up when you need to run evals, find out his ETA so you can schedule accordingly.
+
+---
+
 ## Stack reminders
 
 - Langflow for visual design and prompt authoring. Export JSON + prompts after every settled

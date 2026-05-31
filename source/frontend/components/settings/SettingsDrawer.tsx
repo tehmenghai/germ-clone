@@ -77,9 +77,7 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontWeight: 500, fontSize: 24, marginBottom: 4, color: "var(--txt)" }}>
           Settings
         </h2>
-        <p style={{ fontSize: 11.5, color: "var(--txt-faint)", marginBottom: 22 }}>
-          germ//clone · dedicated to our instructor. Tune the engine &amp; look.
-        </p>
+        <div style={{ marginBottom: 22 }} />
 
         <DrawerBody />
       </aside>

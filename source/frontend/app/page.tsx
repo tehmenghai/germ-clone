@@ -1,51 +1,83 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { ViewMode, Difficulty } from "@/components/shell/Header";
 import { Header } from "@/components/shell/Header";
-import { Composer } from "@/components/shell/Composer";
+import { Convo, type ConvoMessage } from "@/components/shell/Convo";
 import { ProfilePicker, type Profile } from "@/components/shell/ProfilePicker";
 import { PipelineRail } from "@/components/pipeline/PipelineRail";
 import { MLWorkspace } from "@/components/workspace/MLWorkspace";
 import { SettingsDrawer } from "@/components/settings/SettingsDrawer";
-import { AnswerProse } from "@/components/workspace/AnswerProse";
-import { ConsoleChips } from "@/components/workspace/ConsoleChips";
-import { VizPanel } from "@/components/viz/VizPanel";
-import { mockStream, type StageEvent } from "@/lib/mock-stream";
 import { DigitalRain } from "@/components/fx/DigitalRain";
+import { RagGraphPanel } from "@/components/pipeline/RagGraphPanel";
+import { ConsoleChips } from "@/components/workspace/ConsoleChips";
+import { AnswerProse } from "@/components/workspace/AnswerProse";
+import { mockStream, type StageEvent } from "@/lib/mock-stream";
 
 export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("red-pill");
+  const [viewMode, setViewMode] = useState<ViewMode>("reading");
   const [difficulty, setDifficulty] = useState<Difficulty>("standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [railOpen, setRailOpen] = useState(false);
+  const [ragPipeActive, setRagPipeActive] = useState(false);
 
-  const [query, setQuery] = useState("");
+  // Conversation state — handoff model
+  const [msgs, setMsgs] = useState<ConvoMessage[]>([]);
+  const [phase, setPhase] = useState<"idle" | "running" | "done">("idle");
+  const [activeIdx, setActiveIdx] = useState(-1);
   const [events, setEvents] = useState<StageEvent[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [currentQuery, setCurrentQuery] = useState("");
+  const [input, setInput] = useState("");
+
+  const runningRef = useRef(false);
 
   const handleAsk = useCallback(async (q: string) => {
-    setQuery(q);
+    if (runningRef.current) return;
+    runningRef.current = true;
+
+    setCurrentQuery(q);
+    setMsgs((m) => [...m, { role: "user", text: q }]);
     setEvents([]);
-    setIsRunning(true);
+    setActiveIdx(-1);
+    setPhase("running");
+    setInput("");
+
+    const collected: StageEvent[] = [];
+    let idx = 0;
 
     try {
       for await (const event of mockStream(q)) {
-        setEvents((prev) => {
-          // Replace existing event for same stage+status or append
-          const idx = prev.findIndex((e) => e.stage === event.stage);
-          if (idx >= 0) {
-            const next = [...prev];
-            next[idx] = event;
-            return next;
-          }
-          return [...prev, event];
-        });
+        collected.push(event);
+        setEvents([...collected]);
+        setActiveIdx(idx);
+        idx++;
       }
     } finally {
-      setIsRunning(false);
+      setPhase("done");
+      runningRef.current = false;
+
+      const compose = collected.find((e) => e.stage === "compose" && e.status === "done");
+      const lastEval = [...collected].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
+
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "bot",
+          answerMd: compose?.answer_md ?? "",
+          citations: compose?.citations ?? [],
+          scores: lastEval?.scores ?? undefined,
+        },
+      ]);
     }
   }, []);
+
+  function handleSubmit() {
+    const q = input.trim();
+    if (q && phase !== "running") handleAsk(q);
+  }
+
+  const hasActiveTopic = currentQuery.length > 0;
 
   if (!profile) {
     return <ProfilePicker onSelect={setProfile} />;
@@ -67,37 +99,78 @@ export default function HomePage() {
         difficulty={difficulty}
         onDifficulty={setDifficulty}
         onSettings={() => setSettingsOpen(true)}
+        ragPipeActive={ragPipeActive}
+        onRagPipe={() => setRagPipeActive((v) => !v)}
+        hasActiveTopic={hasActiveTopic}
       />
 
-      {/* Body */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        {viewMode === "red-pill" ? (
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", position: "relative" }}>
+        {viewMode === "reading" ? (
           <RealityLayout
+            msgs={msgs}
+            phase={phase}
+            activeIdx={activeIdx}
             events={events}
-            isRunning={isRunning}
-            query={query}
+            currentQuery={currentQuery}
+            input={input}
+            onInput={setInput}
+            onSubmit={handleSubmit}
+            onAsk={handleAsk}
+            railOpen={railOpen}
+            onRailOpen={() => setRailOpen(true)}
+            onRailClose={() => setRailOpen(false)}
           />
         ) : (
           <MatrixLayout
+            msgs={msgs}
+            phase={phase}
+            activeIdx={activeIdx}
             events={events}
-            isRunning={isRunning}
-            query={query}
+            currentQuery={currentQuery}
+            input={input}
+            onInput={setInput}
+            onSubmit={handleSubmit}
+            onAsk={handleAsk}
           />
         )}
       </div>
 
-      <Composer onSubmit={handleAsk} isRunning={isRunning} />
-
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      <RagGraphPanel
+        open={ragPipeActive && hasActiveTopic}
+        onClose={() => setRagPipeActive(false)}
+        events={events}
+        activeIdx={activeIdx}
+      />
     </div>
   );
 }
 
-function RealityLayout({ events, isRunning, query }: {
+/* ── Reality (Reading) mode ─────────────────────────────────────── */
+interface LayoutProps {
+  msgs: ConvoMessage[];
+  phase: "idle" | "running" | "done";
+  activeIdx: number;
   events: StageEvent[];
-  isRunning: boolean;
-  query: string;
-}) {
+  currentQuery: string;
+  input: string;
+  onInput: (v: string) => void;
+  onSubmit: () => void;
+  onAsk: (q: string) => void;
+}
+
+interface RealityProps extends LayoutProps {
+  railOpen: boolean;
+  onRailOpen: () => void;
+  onRailClose: () => void;
+}
+
+function RealityLayout({
+  msgs, phase, activeIdx, events, currentQuery,
+  input, onInput, onSubmit, onAsk,
+  railOpen, onRailClose, onRailOpen,
+}: RealityProps) {
   return (
     <div
       style={{
@@ -105,32 +178,73 @@ function RealityLayout({ events, isRunning, query }: {
         display: "grid",
         gridTemplateColumns: "minmax(380px, 44fr) 56fr",
         overflow: "hidden",
+        position: "relative",
       }}
     >
-      <PipelineRail events={events} isRunning={isRunning} />
-      <MLWorkspace events={events} isRunning={isRunning} query={query} />
+      {/* Left — conversation column */}
+      <Convo
+        msgs={msgs}
+        phase={phase}
+        activeIdx={activeIdx}
+        scores={null}
+        input={input}
+        onInput={onInput}
+        onSubmit={onSubmit}
+        onAsk={onAsk}
+        onOpenTrace={onRailOpen}
+      />
+
+      {/* Right — ML workspace (hidden <920px) */}
+      <div
+        style={{
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <MLWorkspace query={currentQuery} />
+      </div>
+
+      {/* Pipeline Rail — slide-out drawer from right */}
+      <PipelineRail
+        events={events}
+        isRunning={phase === "running"}
+        open={railOpen}
+        onClose={onRailClose}
+      />
     </div>
   );
 }
 
+/* ── Console (Matrix) mode ──────────────────────────────────────── */
 const STAGE_LABEL: Record<string, string> = {
-  route: "ROUTE", rewrite: "REWRITE", retrieve1: "RETRIEVE·1", react: "REACT",
-  reflect: "REFLECT", evaluate1: "EVAL·1", retrieve2: "RETRIEVE·2", evaluate2: "EVAL·2", compose: "COMPOSE",
+  route: "route", rewrite: "rewrite", retrieve1: "retrieve·hop1", react: "react",
+  reflect: "reflect", evaluate1: "evaluate", retrieve2: "retrieve·hop2",
+  evaluate2: "evaluate", compose: "compose",
 };
 
-function MatrixLayout({ events, isRunning, query }: {
-  events: StageEvent[];
-  isRunning: boolean;
-  query: string;
-}) {
-  const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");
+const MODULES = [
+  ["3.1", "Prob/Stat"], ["3.2", "Intro ML"], ["3.3", "Supervised"],
+  ["3.4", "Sup.Adv"], ["3.5", "Unsup"], ["3.6", "TimeSeries"],
+  ["3.7", "NeuralNet"], ["3.8", "CV"], ["3.9", "NLP"], ["3.10", "NLP+"],
+];
 
-  // Coverage bar: mean of the last eval's f/r/c scores
+function detectActiveModules(query: string): string[] {
+  const q = query.toLowerCase();
+  if (q.includes("bias") || q.includes("variance") || q.includes("overfit")) return ["3.3", "3.4"];
+  if (q.includes("regular") || q.includes("lasso") || q.includes("ridge")) return ["3.4"];
+  if (q.includes("knn") || q.includes("nearest")) return ["3.2", "3.3"];
+  if (q.includes("gradient") || q.includes("descent")) return ["3.7"];
+  return [];
+}
+
+function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onInput, onSubmit, onAsk }: LayoutProps) {
+  const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");
   const lastEval = [...events].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
-  const coverage = lastEval?.scores
-    ? (lastEval.scores.f + lastEval.scores.r + lastEval.scores.c) / 3
-    : null;
-  const pass = lastEval?.verdict?.startsWith("PASS") ?? false;
+  const activeModules = detectActiveModules(currentQuery);
+
+  // Build per-bot-message query list for terminal trace
+  const lastUserMsg = [...msgs].reverse().find((m) => m.role === "user");
 
   return (
     <div
@@ -139,206 +253,285 @@ function MatrixLayout({ events, isRunning, query }: {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        background: "var(--bg)",
         position: "relative",
       }}
     >
-      {/* Digital rain — fixed full-viewport canvas behind content */}
       <DigitalRain />
 
-      {/* Coverage bar — pinned to top once eval fires */}
-      {coverage !== null && (
-        <div
-          style={{
-            flexShrink: 0,
-            position: "relative",
-            zIndex: 2,
-            padding: "6px 20px",
-            background: "var(--glass-bg)",
-            backdropFilter: `blur(var(--glass-blur))`,
-            WebkitBackdropFilter: `blur(var(--glass-blur))`,
-            borderBottom: "1px solid var(--line-soft)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            fontFamily: "var(--font-mono, monospace)",
-          }}
-        >
-          <span style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)", letterSpacing: "0.08em", minWidth: 70 }}>
-            COVERAGE
-          </span>
-          <div style={{ flex: 1, maxWidth: 200, height: 4, background: "var(--line)", borderRadius: 2, overflow: "hidden" }}>
+      {/* Coverage map bar */}
+      <div
+        style={{
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 2,
+          padding: "6px 18px",
+          background: "color-mix(in oklab, var(--bg) 80%, transparent)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          borderBottom: "1px solid var(--line-soft)",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          overflowX: "auto",
+        }}
+      >
+        <span style={{ fontSize: 10, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--txt-faint)", whiteSpace: "nowrap" }}>
+          ⊞ corpus coverage
+        </span>
+        {MODULES.map(([id, nm]) => {
+          const hot = activeModules.includes(id);
+          return (
             <div
+              key={id}
               style={{
-                height: "100%",
-                width: `${Math.round(coverage * 100)}%`,
-                background: pass ? "var(--green)" : "var(--amber)",
-                borderRadius: 2,
-                transition: "width 0.5s ease",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "3px 8px",
+                borderRadius: 7,
+                border: `1px solid ${hot ? "var(--green-deep)" : "var(--line)"}`,
+                background: hot ? "color-mix(in oklab, var(--green-deep) 12%, transparent)" : "transparent",
+                boxShadow: hot ? "var(--glow)" : "none",
+                transition: "border-color 0.2s",
+                fontSize: 9,
               }}
-            />
-          </div>
-          <span style={{ fontSize: "var(--font-label)", color: pass ? "var(--green)" : "var(--amber)", minWidth: 36 }}>
-            {Math.round(coverage * 100)}%
-          </span>
-          {lastEval?.scores && (
-            <span style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)" }}>
-              f:{lastEval.scores.f.toFixed(2)} r:{lastEval.scores.r.toFixed(2)} c:{lastEval.scores.c.toFixed(2)}
-            </span>
-          )}
-          <span
-            style={{
-              fontSize: "var(--font-label)",
-              fontWeight: 600,
-              color: pass ? "var(--green)" : "var(--amber)",
-              letterSpacing: "0.06em",
-            }}
-          >
-            {pass ? "PASS" : "RELOOP"}
-          </span>
-        </div>
-      )}
+            >
+              <span style={{ color: hot ? "var(--green)" : "var(--txt-dim)", fontWeight: 600 }}>{id}</span>
+              <span style={{ color: "var(--txt-faint)" }}>{nm}</span>
+            </div>
+          );
+        })}
+        <span style={{ marginLeft: "auto", fontSize: 9.5, color: "var(--txt-faint)", whiteSpace: "nowrap" }}>
+          142 hrs transcripts · 4 textbooks · 38 notebooks indexed
+        </span>
+      </div>
 
-      {/* Scrollable body */}
+      {/* Main grid */}
       <div
         style={{
           flex: 1,
-          overflowY: "auto",
-          padding: "16px 20px",
-          fontFamily: "var(--font-mono, monospace)",
+          display: "grid",
+          gridTemplateColumns: "minmax(380px, 44fr) 56fr",
+          overflow: "hidden",
           position: "relative",
           zIndex: 2,
         }}
       >
-        {/* Terminal header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <span style={{ color: "var(--green)", fontSize: "var(--font-label)", letterSpacing: "0.1em" }}>
-            germ//clone
-          </span>
-          <span style={{ color: "var(--txt-faint)", fontSize: "var(--font-label)" }}>terminal</span>
-          <span style={{ color: "var(--line)", fontSize: "var(--font-label)" }}>——</span>
-          <span style={{ color: "var(--txt-faint)", fontSize: "var(--font-label)" }}>agentic RAG</span>
-        </div>
+        {/* Left — terminal */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRight: "1px solid var(--line-soft)",
+          }}
+        >
+          {/* Terminal scroll */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 0" }}>
+            {msgs.length === 0 ? (
+              /* Empty state */
+              <div style={{ padding: "20px 20px 0" }}>
+                <div style={{ fontSize: 12, color: "var(--txt-faint)", marginBottom: 14 }}>
+                  ⌥ germ console — type a question below or pick one:
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[
+                    { mod: "3.3", label: "Why does my decision tree overfit?" },
+                    { mod: "3.4", label: "L1 vs L2 regularization — when to use each?" },
+                    { mod: "3.2", label: "How do I choose k in KNN?" },
+                    { mod: "3.7", label: "What does the learning rate do in gradient descent?" },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => onAsk(chip.label)}
+                      style={{
+                        textAlign: "left", border: "1px solid var(--line)", background: "var(--panel)",
+                        borderRadius: 9, padding: "10px 14px", color: "var(--txt)", fontSize: 12,
+                        display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                        transition: "transform 0.15s",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateX(3px)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ""; }}
+                    >
+                      <span style={{ fontSize: 9, color: "var(--on-green)", background: "var(--green)", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>
+                        {chip.mod}
+                      </span>
+                      {chip.label}
+                      <span style={{ marginLeft: "auto", color: "var(--txt-faint)" }}>↗</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Terminal trace */
+              <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}>
+                {lastUserMsg?.text && (
+                  <div style={{ padding: "4px 0 10px 0", display: "flex", gap: 8, paddingLeft: 12 }}>
+                    <span style={{ color: "var(--green)", minWidth: 20 }}>›</span>
+                    <span style={{ color: "var(--txt)" }}>{lastUserMsg.text}</span>
+                  </div>
+                )}
+                {events.map((ev, i) => {
+                  const isEval = ev.stage.startsWith("evaluate");
+                  const isBelowPass = isEval && ev.verdict?.startsWith("BELOW");
+                  const color = ev.stage === "retrieve1" || ev.stage === "retrieve2"
+                    ? "var(--green)"
+                    : isEval && isBelowPass ? "var(--red)"
+                    : isEval ? "var(--green)"
+                    : ev.stage === "reflect" ? "var(--amber)"
+                    : "var(--txt-dim)";
 
-        {/* Query line */}
-        {query && (
-          <div style={{ marginBottom: 12, display: "flex", gap: 6 }}>
-            <span style={{ color: "var(--green)", fontSize: "var(--font-code)" }}>›</span>
-            <span style={{ color: "var(--txt)", fontSize: "var(--font-base)" }}>{query}</span>
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        padding: "2px 0",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {/* Line number gutter */}
+                      <span
+                        aria-hidden
+                        style={{
+                          minWidth: 28,
+                          textAlign: "right",
+                          paddingRight: 10,
+                          color: "var(--txt-faint)",
+                          userSelect: "none",
+                          fontSize: 11,
+                        }}
+                      >
+                        {String(i + 1).padStart(2, " ")}
+                      </span>
+                      <span style={{ color: "var(--txt-faint)", minWidth: 120 }}>
+                        [{STAGE_LABEL[ev.stage] ?? ev.stage}]
+                      </span>
+                      <span style={{ color, flex: 1 }}>
+                        {ev.scores
+                          ? `faithful ${ev.scores.f.toFixed(2)} · complete ${ev.scores.c.toFixed(2)} → ${ev.verdict}`
+                          : ev.detail ?? ev.status}
+                      </span>
+                    </div>
+                  );
+                })}
+                {phase === "running" && (
+                  <div style={{ padding: "4px 0 0 28px", color: "var(--amber)" }}>
+                    <span role="status" aria-label="Running">▌</span>
+                  </div>
+                )}
+                {/* Answer prose section */}
+                {composeEvent?.answer_md && (
+                  <div style={{ padding: "14px 12px 6px" }}>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                      <span style={{ color: "var(--green)" }}>answer&gt;</span>
+                    </div>
+                    <div style={{ paddingLeft: 20 }}>
+                      <AnswerProse
+                        markdown={composeEvent.answer_md}
+                        citations={composeEvent.citations ?? []}
+                      />
+                      <ConsoleChips />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Stage chips */}
-        {events.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
-            {events.map((ev, i) => {
-              const isEval = ev.stage.startsWith("evaluate");
-              const statusColor =
-                ev.status === "done"
-                  ? (isEval && ev.verdict?.startsWith("BELOW") ? "var(--amber)" : "var(--green)")
-                  : ev.status === "active"
-                  ? "var(--amber)"
-                  : "var(--txt-faint)";
-              return (
-                <span
-                  key={i}
-                  title={ev.detail ?? ev.verdict ?? ev.stage}
-                  className="stage-chip"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 7px",
-                    borderRadius: "var(--r-sm)",
-                    border: `1px solid ${statusColor}`,
-                    fontSize: "var(--font-label)",
-                    color: statusColor,
-                    letterSpacing: "0.05em",
-                    background: `${statusColor}10`,
-                  }}
-                >
-                  {ev.status === "done" && !ev.verdict?.startsWith("BELOW") ? "✓" : ev.status === "active" ? "▶" : "○"}
-                  {" "}
-                  {STAGE_LABEL[ev.stage] ?? ev.stage.toUpperCase()}
-                  {ev.scores && (
-                    <span style={{ color: "var(--txt-faint)", fontSize: 9 }}>
-                      {" "}{Math.round(((ev.scores.f + ev.scores.r + ev.scores.c) / 3) * 100)}%
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Stage log lines */}
-        <div style={{ marginBottom: 16 }}>
-          {events.map((ev, i) => (
-            <div key={i} style={{ marginBottom: 3, fontSize: "var(--font-code)", display: "flex", gap: 8 }}>
-              <span style={{ color: "var(--txt-faint)", minWidth: 90 }}>[{ev.stage}]</span>
-              <span style={{
-                color: ev.status === "done"
-                  ? (ev.verdict?.startsWith("BELOW") ? "var(--amber)" : "var(--green)")
-                  : ev.status === "active"
-                  ? "var(--amber)"
-                  : "var(--txt-dim)",
-                minWidth: 48,
-              }}>
-                {ev.status}
-              </span>
-              {ev.detail && <span style={{ color: "var(--txt-dim)" }}>{ev.detail}</span>}
-              {ev.scores && (
-                <span style={{ color: "var(--txt-faint)" }}>
-                  f:{ev.scores.f.toFixed(2)} r:{ev.scores.r.toFixed(2)} c:{ev.scores.c.toFixed(2)} → {ev.verdict}
-                </span>
-              )}
-            </div>
-          ))}
-          {isRunning && (
-            <div style={{ color: "var(--amber)", fontSize: "var(--font-code)", marginTop: 4 }}>
-              <span role="status" aria-label="Pipeline running">▌</span>
-            </div>
-          )}
-        </div>
-
-        {/* Answer — glass panel */}
-        {composeEvent?.answer_md && (
+          {/* Console composer */}
           <div
             style={{
-              marginTop: 4,
-              padding: "16px 18px",
-              borderRadius: "var(--r-lg)",
-              border: "1px solid var(--line-soft)",
-              background: "var(--glass-bg)",
-              backdropFilter: `blur(var(--glass-blur))`,
-              WebkitBackdropFilter: `blur(var(--glass-blur))`,
-              boxShadow: "var(--shadow)",
+              flexShrink: 0,
+              padding: "8px 12px",
+              borderTop: "1px solid var(--line-soft)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            <AnswerProse
-              markdown={composeEvent.answer_md}
-              citations={composeEvent.citations ?? []}
+            <span style={{ color: "var(--green)", fontSize: 12, fontFamily: "var(--font-mono, monospace)" }}>germ&gt;</span>
+            <input
+              value={input}
+              onChange={(e) => onInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onSubmit(); } }}
+              placeholder="type a question…"
+              disabled={phase === "running"}
+              style={{
+                flex: 1,
+                background: "var(--bg-2)",
+                border: "1px solid var(--line)",
+                borderRadius: 9,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontFamily: "var(--font-mono, monospace)",
+                color: "var(--txt)",
+                outline: "none",
+              }}
             />
-            <ConsoleChips />
+            <button
+              onClick={onSubmit}
+              disabled={phase === "running" || !input.trim()}
+              aria-label="Send"
+              style={{
+                width: 34, height: 34, borderRadius: 7, border: "none",
+                background: "var(--green)", color: "var(--on-green)",
+                fontSize: 15, cursor: phase === "running" || !input.trim() ? "not-allowed" : "pointer",
+                opacity: phase === "running" || !input.trim() ? 0.45 : 1,
+                display: "grid", placeItems: "center",
+              }}
+            >
+              ↵
+            </button>
           </div>
-        )}
+        </div>
 
-        {composeEvent && (
-          <div
+        {/* Right — workspace + gauge */}
+        <div style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <MLWorkspace query={currentQuery} compact />
+        </div>
+      </div>
+
+      {/* Eval coverage bar — shown once pipeline fires */}
+      {lastEval?.scores && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 52,
+            left: 0,
+            right: 0,
+            zIndex: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "5px 18px",
+            background: "color-mix(in oklab, var(--bg) 85%, transparent)",
+            backdropFilter: "blur(10px)",
+            borderTop: "1px solid var(--line-soft)",
+            fontSize: 11,
+            fontFamily: "var(--font-mono, monospace)",
+          }}
+        >
+          <span style={{ color: "var(--txt-faint)" }}>eval</span>
+          {["f", "r", "c"].map((k) => {
+            const v = lastEval.scores![k as "f" | "r" | "c"];
+            return (
+              <span key={k} style={{ color: v >= 0.8 ? "var(--green)" : "var(--amber)" }}>
+                {k}:{v.toFixed(2)}
+              </span>
+            );
+          })}
+          <span
             style={{
-              marginTop: 10,
-              borderRadius: "var(--r-lg)",
-              border: "1px solid var(--line-soft)",
-              background: "var(--glass-bg)",
-              backdropFilter: `blur(var(--glass-blur))`,
-              WebkitBackdropFilter: `blur(var(--glass-blur))`,
-              overflow: "hidden",
+              color: lastEval.verdict?.startsWith("PASS") ? "var(--green)" : "var(--amber)",
+              fontWeight: 600,
             }}
           >
-            <VizPanel query={query} />
-          </div>
-        )}
-      </div>
+            → {lastEval.verdict}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
