@@ -8,7 +8,7 @@ PID_FILE="$ROOT/.germ-clone.pid"
 
 # --- helpers -----------------------------------------------------------------
 
-# Kill a PID only if its cmdline matches the expected signature
+# Kill a PID (and its whole process group) only if cmdline matches the expected signature
 kill_own() {
   local pid="$1" sig="$2"
   [[ -z "$pid" || "$pid" == "0" ]] && return 0
@@ -16,11 +16,38 @@ kill_own() {
     local cmdline
     cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
     if echo "$cmdline" | grep -qE "$sig"; then
-      kill "$pid" 2>/dev/null || true
+      local pgid
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [[ -n "$pgid" && "$pgid" != "0" ]]; then
+        kill -- -"$pgid" 2>/dev/null || true
+      else
+        kill "$pid" 2>/dev/null || true
+      fi
       return 0
     fi
   fi
   return 1  # pid not ours
+}
+
+# Kill any process holding a port that matches the expected cmdline signature
+kill_port() {
+  local port="$1" sig="$2"
+  local pids
+  pids=$(ss -tlnp "( sport = :$port )" 2>/dev/null | grep -oP 'pid=\K[0-9]+' || true)
+  for pid in $pids; do
+    local cmdline
+    cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
+    if echo "$cmdline" | grep -qE "$sig"; then
+      local pgid
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [[ -n "$pgid" && "$pgid" != "0" ]]; then
+        kill -- -"$pgid" 2>/dev/null || true
+      else
+        kill "$pid" 2>/dev/null || true
+      fi
+      echo "--> Killed orphaned process on port $port (PID $pid)"
+    fi
+  done
 }
 
 # Wait up to 3 s for a port to be released
@@ -42,6 +69,11 @@ free_port() {
   echo "$port"
 }
 
+# --- preferred ports (defined early — used by both stop and start sections) --
+
+PREFERRED_BACKEND=8007
+PREFERRED_FRONTEND=3007
+
 # --- stop previous instance --------------------------------------------------
 
 PREV_BACKEND_PID=0
@@ -54,18 +86,19 @@ fi
 if kill_own "$PREV_BACKEND_PID" "uvicorn.*app\.main"; then
   echo "--> Stopped previous backend (PID $PREV_BACKEND_PID)"
 fi
-if kill_own "$PREV_FRONTEND_PID" "next(\.js)?.*dev|node.*\.next"; then
+if kill_own "$PREV_FRONTEND_PID" "next(\.js)?.*dev|node.*\.next|next-server"; then
   echo "--> Stopped previous frontend (PID $PREV_FRONTEND_PID)"
 fi
 
-# --- resolve ports -----------------------------------------------------------
-
-PREFERRED_BACKEND=8007
-PREFERRED_FRONTEND=3007
+# Fallback: kill any orphaned processes still holding the preferred ports
+kill_port "$PREFERRED_BACKEND" "uvicorn.*app\.main"
+kill_port "$PREFERRED_FRONTEND" "next(\.js)?.*dev|node.*\.next|pnpm.*dev|next-server"
 
 # Brief settle after kills
-[[ "$PREV_BACKEND_PID"  != "0" ]] && wait_port_free "$PREFERRED_BACKEND"  || true
-[[ "$PREV_FRONTEND_PID" != "0" ]] && wait_port_free "$PREFERRED_FRONTEND" || true
+wait_port_free "$PREFERRED_BACKEND"  || true
+wait_port_free "$PREFERRED_FRONTEND" || true
+
+# --- resolve ports -----------------------------------------------------------
 
 BACKEND_PORT=$(free_port "$PREFERRED_BACKEND")
 FRONTEND_PORT=$(free_port "$PREFERRED_FRONTEND")
