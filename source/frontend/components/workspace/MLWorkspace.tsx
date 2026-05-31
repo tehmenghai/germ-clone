@@ -2,6 +2,8 @@
 
 import type { StageEvent } from "@/lib/mock-stream";
 import { AnswerProse } from "./AnswerProse";
+import { VizPanel } from "@/components/viz/VizPanel";
+import { ConsoleChips } from "./ConsoleChips";
 
 interface MLWorkspaceProps {
   events: StageEvent[];
@@ -47,11 +49,17 @@ export function MLWorkspace({ events, isRunning, query }: MLWorkspaceProps) {
 
       {/* Answer */}
       {composeEvent?.answer_md && (
-        <AnswerProse
-          markdown={composeEvent.answer_md}
-          citations={composeEvent.citations ?? []}
-        />
+        <>
+          <AnswerProse
+            markdown={composeEvent.answer_md}
+            citations={composeEvent.citations ?? []}
+          />
+          <ConsoleChips />
+        </>
       )}
+
+      {/* Visualisation — rendered below answer when compose is done */}
+      {composeEvent && <VizPanel query={query} />}
     </main>
   );
 }
