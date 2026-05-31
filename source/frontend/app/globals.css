@@ -34,3 +34,33 @@ html, body {
   background: var(--green-deep);
   color: var(--txt);
 }
+
+/* Answer prose typography */
+.answer-prose h2 { font-size: 18px; font-weight: 600; color: var(--txt); margin: 20px 0 8px; line-height: 1.3; }
+.answer-prose h3 { font-size: 15px; font-weight: 600; color: var(--txt-dim); margin: 16px 0 6px; }
+.answer-prose p  { margin-bottom: 10px; }
+.answer-prose strong { color: var(--txt); font-weight: 600; }
+.answer-prose code { font-family: var(--font-mono, monospace); font-size: 13px; background: var(--panel); padding: 1px 5px; border-radius: 4px; color: var(--cyan); }
+
+/* Citation superscript links */
+.cite-ref {
+  color: var(--green);
+  text-decoration: none;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 0;
+  padding: 0 1px;
+}
+.cite-ref:hover { text-decoration: underline; }
+
+/* Focus ring for keyboard accessibility */
+button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+a:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}

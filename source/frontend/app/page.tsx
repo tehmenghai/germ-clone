@@ -8,6 +8,9 @@ import { ProfilePicker, type Profile } from "@/components/shell/ProfilePicker";
 import { PipelineRail } from "@/components/pipeline/PipelineRail";
 import { MLWorkspace } from "@/components/workspace/MLWorkspace";
 import { SettingsDrawer } from "@/components/settings/SettingsDrawer";
+import { AnswerProse } from "@/components/workspace/AnswerProse";
+import { ConsoleChips } from "@/components/workspace/ConsoleChips";
+import { VizPanel } from "@/components/viz/VizPanel";
 import { mockStream, type StageEvent } from "@/lib/mock-stream";
 
 export default function HomePage() {
@@ -109,12 +112,24 @@ function RealityLayout({ events, isRunning, query }: {
   );
 }
 
+const STAGE_LABEL: Record<string, string> = {
+  route: "ROUTE", rewrite: "REWRITE", retrieve1: "RETRIEVE·1", react: "REACT",
+  reflect: "REFLECT", evaluate1: "EVAL·1", retrieve2: "RETRIEVE·2", evaluate2: "EVAL·2", compose: "COMPOSE",
+};
+
 function MatrixLayout({ events, isRunning, query }: {
   events: StageEvent[];
   isRunning: boolean;
   query: string;
 }) {
   const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");
+
+  // Coverage bar: mean of the last eval's f/r/c scores
+  const lastEval = [...events].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
+  const coverage = lastEval?.scores
+    ? (lastEval.scores.f + lastEval.scores.r + lastEval.scores.c) / 3
+    : null;
+  const pass = lastEval?.verdict?.startsWith("PASS") ?? false;
 
   return (
     <div
@@ -126,63 +141,174 @@ function MatrixLayout({ events, isRunning, query }: {
         background: "var(--bg)",
       }}
     >
-      {/* Terminal trace panel */}
+      {/* Coverage bar — pinned to top once eval fires */}
+      {coverage !== null && (
+        <div
+          style={{
+            flexShrink: 0,
+            padding: "6px 20px",
+            background: "var(--bg-2)",
+            borderBottom: "1px solid var(--line)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontFamily: "var(--font-mono, monospace)",
+          }}
+        >
+          <span style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)", letterSpacing: "0.08em", minWidth: 70 }}>
+            COVERAGE
+          </span>
+          <div style={{ flex: 1, maxWidth: 200, height: 4, background: "var(--line)", borderRadius: 2, overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${Math.round(coverage * 100)}%`,
+                background: pass ? "var(--green)" : "var(--amber)",
+                borderRadius: 2,
+                transition: "width 0.5s ease",
+              }}
+            />
+          </div>
+          <span style={{ fontSize: "var(--font-label)", color: pass ? "var(--green)" : "var(--amber)", minWidth: 36 }}>
+            {Math.round(coverage * 100)}%
+          </span>
+          {lastEval?.scores && (
+            <span style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)" }}>
+              f:{lastEval.scores.f.toFixed(2)} r:{lastEval.scores.r.toFixed(2)} c:{lastEval.scores.c.toFixed(2)}
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: "var(--font-label)",
+              fontWeight: 600,
+              color: pass ? "var(--green)" : "var(--amber)",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {pass ? "PASS" : "RELOOP"}
+          </span>
+        </div>
+      )}
+
+      {/* Scrollable body */}
       <div
         style={{
           flex: 1,
-          overflow: "y-auto",
+          overflowY: "auto",
           padding: "16px 20px",
           fontFamily: "var(--font-mono, monospace)",
         }}
       >
-        <div style={{ marginBottom: 12 }}>
-          <span style={{ color: "var(--green)", fontSize: "var(--font-label)" }}>
-            germ//clone terminal
+        {/* Terminal header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <span style={{ color: "var(--green)", fontSize: "var(--font-label)", letterSpacing: "0.1em" }}>
+            germ//clone
           </span>
+          <span style={{ color: "var(--txt-faint)", fontSize: "var(--font-label)" }}>terminal</span>
+          <span style={{ color: "var(--line)", fontSize: "var(--font-label)" }}>——</span>
+          <span style={{ color: "var(--txt-faint)", fontSize: "var(--font-label)" }}>agentic RAG</span>
         </div>
 
+        {/* Query line */}
         {query && (
-          <div style={{ marginBottom: 8 }}>
-            <span style={{ color: "var(--txt-faint)", fontSize: "var(--font-label)" }}>$ </span>
+          <div style={{ marginBottom: 12, display: "flex", gap: 6 }}>
+            <span style={{ color: "var(--green)", fontSize: "var(--font-code)" }}>›</span>
             <span style={{ color: "var(--txt)", fontSize: "var(--font-base)" }}>{query}</span>
           </div>
         )}
 
-        {events.map((ev, i) => (
-          <div key={i} style={{ marginBottom: 4, fontSize: "var(--font-code)" }}>
-            <span style={{ color: "var(--txt-faint)" }}>[{ev.stage}] </span>
-            <span style={{ color: ev.status === "done" ? "var(--green)" : ev.status === "active" ? "var(--amber)" : "var(--txt-dim)" }}>
-              {ev.status}
-            </span>
-            {ev.detail && <span style={{ color: "var(--txt-dim)" }}> — {ev.detail}</span>}
-            {ev.scores && (
-              <span style={{ color: "var(--txt-faint)" }}>
-                {" "}f:{ev.scores.f.toFixed(2)} r:{ev.scores.r.toFixed(2)} c:{ev.scores.c.toFixed(2)} → {ev.verdict}
-              </span>
-            )}
-          </div>
-        ))}
-
-        {isRunning && (
-          <div style={{ color: "var(--amber)", fontSize: "var(--font-code)" }}>
-            <span role="status" aria-label="Pipeline running">▌</span>
+        {/* Stage chips */}
+        {events.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
+            {events.map((ev, i) => {
+              const isEval = ev.stage.startsWith("evaluate");
+              const statusColor =
+                ev.status === "done"
+                  ? (isEval && ev.verdict?.startsWith("BELOW") ? "var(--amber)" : "var(--green)")
+                  : ev.status === "active"
+                  ? "var(--amber)"
+                  : "var(--txt-faint)";
+              return (
+                <span
+                  key={i}
+                  title={ev.detail ?? ev.verdict ?? ev.stage}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 7px",
+                    borderRadius: "var(--r-sm)",
+                    border: `1px solid ${statusColor}`,
+                    fontSize: "var(--font-label)",
+                    color: statusColor,
+                    letterSpacing: "0.05em",
+                    background: "transparent",
+                  }}
+                >
+                  {ev.status === "done" && !ev.verdict?.startsWith("BELOW") ? "✓" : ev.status === "active" ? "▶" : "○"}
+                  {" "}
+                  {STAGE_LABEL[ev.stage] ?? ev.stage.toUpperCase()}
+                  {ev.scores && (
+                    <span style={{ color: "var(--txt-faint)", fontSize: 9 }}>
+                      {" "}{Math.round(((ev.scores.f + ev.scores.r + ev.scores.c) / 3) * 100)}%
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </div>
         )}
 
+        {/* Stage log lines */}
+        <div style={{ marginBottom: 16 }}>
+          {events.map((ev, i) => (
+            <div key={i} style={{ marginBottom: 3, fontSize: "var(--font-code)", display: "flex", gap: 8 }}>
+              <span style={{ color: "var(--txt-faint)", minWidth: 90 }}>[{ev.stage}]</span>
+              <span style={{
+                color: ev.status === "done"
+                  ? (ev.verdict?.startsWith("BELOW") ? "var(--amber)" : "var(--green)")
+                  : ev.status === "active"
+                  ? "var(--amber)"
+                  : "var(--txt-dim)",
+                minWidth: 48,
+              }}>
+                {ev.status}
+              </span>
+              {ev.detail && <span style={{ color: "var(--txt-dim)" }}>{ev.detail}</span>}
+              {ev.scores && (
+                <span style={{ color: "var(--txt-faint)" }}>
+                  f:{ev.scores.f.toFixed(2)} r:{ev.scores.r.toFixed(2)} c:{ev.scores.c.toFixed(2)} → {ev.verdict}
+                </span>
+              )}
+            </div>
+          ))}
+          {isRunning && (
+            <div style={{ color: "var(--amber)", fontSize: "var(--font-code)", marginTop: 4 }}>
+              <span role="status" aria-label="Pipeline running">▌</span>
+            </div>
+          )}
+        </div>
+
+        {/* Answer — same components as Reality mode */}
         {composeEvent?.answer_md && (
           <div
             style={{
-              marginTop: 16,
-              padding: "12px 14px",
-              background: "var(--panel)",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--r-md)",
-              color: "var(--txt)",
-              fontSize: "var(--font-base)",
-              whiteSpace: "pre-wrap",
+              marginTop: 4,
+              paddingTop: 16,
+              borderTop: "1px solid var(--line)",
             }}
           >
-            {composeEvent.answer_md}
+            <AnswerProse
+              markdown={composeEvent.answer_md}
+              citations={composeEvent.citations ?? []}
+            />
+            <ConsoleChips />
+          </div>
+        )}
+
+        {composeEvent && (
+          <div style={{ marginTop: 8 }}>
+            <VizPanel query={query} />
           </div>
         )}
       </div>
