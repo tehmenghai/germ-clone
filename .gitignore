@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+source/backend/.venv/
+source/backend/.env
+source/backend/.env.*
+!source/backend/.env.example
+
+# Node
+node_modules/
+.next/
+source/frontend/.env.local
+source/frontend/.env.*
+!source/frontend/.env.example
+
+# Neon / DB
+*.db
+*.duckdb
+
+# Eval artefacts
+evaluation/results/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

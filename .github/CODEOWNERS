@@ -1,0 +1,34 @@
+# germ//clone CODEOWNERS
+# PRs auto-route to the owner of the changed directory.
+# Nobody merges into another owner's area without their review.
+
+# Default fallback — lead reviews anything unmatched
+*                                           @likhong
+
+# Frontend (Lik Hong)
+source/frontend/                            @likhong
+
+# Ingest, corpus, migrations (Ben)
+source/backend/ingestion/                   @ben
+source/backend/repository/                  @ben
+source/backend/alembic/                     @ben
+
+# RAG engine, LLM dispatch, streaming, app (Meng Hai)
+source/backend/rag/                         @menghai
+source/backend/llm/                         @menghai
+source/backend/streaming/                   @menghai
+source/backend/app/                         @menghai
+
+# Shared contracts — any change requires consumer heads-up (see docs/contracts.md)
+# Both lead and the downstream consumer must approve
+source/backend/schemas/events.py            @likhong @menghai
+source/backend/schemas/retrieval.py         @menghai @ben
+
+# Langflow design + eval (Lanson)
+flows/                                      @lanson
+evaluation/                                 @lanson
+
+# Governance / docs — lead
+docs/                                       @likhong
+CLAUDE.md                                   @likhong
+README.md                                   @likhong

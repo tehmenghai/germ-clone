@@ -1,0 +1,67 @@
+/* Design tokens — ported from prototype/styles.css
+   Apply to :root via data-theme attribute on <html>            */
+
+:root[data-theme="matrix"] {
+  --bg:          oklch(0.15 0.018 152);
+  --bg-2:        oklch(0.185 0.022 152);
+  --panel:       oklch(0.205 0.024 152);
+  --panel-2:     oklch(0.235 0.028 152);
+  --line:        oklch(0.32 0.04 152);
+  --line-soft:   oklch(0.27 0.03 152 / 0.6);
+  --txt:         oklch(0.92 0.05 150);
+  --txt-dim:     oklch(0.74 0.06 150);
+  --txt-faint:   oklch(0.55 0.05 150);
+  --green:       oklch(0.88 0.21 150);
+  --green-2:     oklch(0.80 0.20 152);
+  --green-deep:  oklch(0.55 0.16 152);
+  --cyan:        oklch(0.83 0.11 195);
+  --amber:       oklch(0.84 0.14 80);
+  --red:         oklch(0.72 0.18 25);
+  --on-green:    #04130b;
+  --glow:        0 0 0.5px var(--green), 0 0 14px oklch(0.88 0.21 150 / 0.30);
+  --shadow:      0 18px 50px -20px #000;
+}
+
+:root[data-theme="clinical"] {
+  --bg:          oklch(0.975 0.006 220);
+  --bg-2:        oklch(0.955 0.008 220);
+  --panel:       oklch(1 0 0);
+  --panel-2:     oklch(0.97 0.006 220);
+  --line:        oklch(0.88 0.012 220);
+  --line-soft:   oklch(0.88 0.012 220 / 0.6);
+  --txt:         oklch(0.27 0.02 230);
+  --txt-dim:     oklch(0.48 0.02 230);
+  --txt-faint:   oklch(0.65 0.015 230);
+  --green:       oklch(0.55 0.13 165);
+  --green-2:     oklch(0.48 0.12 165);
+  --green-deep:  oklch(0.38 0.10 165);
+  --cyan:        oklch(0.55 0.11 230);
+  --amber:       oklch(0.66 0.13 65);
+  --red:         oklch(0.58 0.2 25);
+  --on-green:    #ffffff;
+  --glow:        none;
+  --shadow:      0 4px 16px -4px oklch(0.27 0.02 230 / 0.12);
+}
+
+/* Typography scale */
+:root {
+  --font-base:   14px;
+  --font-prose:  16.5px;
+  --font-eq:     23px;
+  --font-code:   12px;
+  --font-label:  11px;
+
+  /* Spacing */
+  --space:       8px;
+
+  /* Radii */
+  --r-sm:  7px;
+  --r-md:  9px;
+  --r-lg:  13px;
+  --r-xl:  14px;
+
+  /* Layout */
+  --header-h:    58px;
+  --rail-w:      372px;
+  --composer-max: 760px;
+}
