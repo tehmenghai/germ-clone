@@ -17,7 +17,11 @@ app = FastAPI(title="germ//clone backend", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3007"],
+    allow_origins=[
+        "http://localhost:3007",   # Next.js dev server
+        "http://localhost:8080",   # test UI served via python -m http.server
+        "null",                    # file:// origin (browser direct-open)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
