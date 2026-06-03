@@ -1,0 +1,33 @@
+project:
+  owner: "Ben"
+  suffix: "_BEN0601"
+
+paths:
+  raw_dir: "data_BEN0601/raw_BEN0601"
+  marker_output_dir: "data_BEN0601/marker_output_BEN0601"
+  processed_dir: "data_BEN0601/processed_BEN0601"
+  chunks_dir: "data_BEN0601/chunks_BEN0601"
+  logs_dir: "data_BEN0601/logs_BEN0601"
+
+marker:
+  output_format: "markdown"
+  use_llm: false
+
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 200
+  preserve_headings: true
+
+embedding:
+  provider: "google_ai_studio"
+  model: "gemini-embedding-2"
+  output_dimensionality: 768
+  document_prefix: "Represent this document chunk for retrieval: "
+  query_prefix: "Represent this question for retrieving relevant document chunks: "
+
+database:
+  table_name: "rag_chunks_BEN0601"
+  vector_dimension: 768
+
+retrieval:
+  top_k: 5

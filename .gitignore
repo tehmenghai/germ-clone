@@ -37,6 +37,25 @@ corpus/*
 !corpus/README.md
 !corpus/.gitkeep
 
+# Ben ingestion pipeline — secrets and generated data
+source/backend/ingestion/.env_BEN0601
+data_BEN0601/raw_BEN0601/*
+data_BEN0601/marker_output_BEN0601/*
+data_BEN0601/processed_BEN0601/*
+data_BEN0601/chunks_BEN0601/*
+data_BEN0601/logs_BEN0601/*
+# Keep placeholders and the sample output for teammate inspection
+!data_BEN0601/raw_BEN0601/.gitkeep_BEN0601
+!data_BEN0601/marker_output_BEN0601/.gitkeep_BEN0601
+!data_BEN0601/processed_BEN0601/.gitkeep_BEN0601
+!data_BEN0601/chunks_BEN0601/.gitkeep_BEN0601
+!data_BEN0601/chunks_BEN0601/sample_chunks_BEN0601.jsonl
+!data_BEN0601/logs_BEN0601/.gitkeep_BEN0601
+data_BEN0602/chunks_BEN0602/chunks_BEN0602.jsonl
+# Keep placeholder and sample for teammate inspection
+!data_BEN0602/chunks_BEN0602/.gitkeep_BEN0602
+!data_BEN0602/chunks_BEN0602/sample_chunks_BEN0602.jsonl
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,0 +1,9 @@
+google-genai
+psycopg[binary]
+pgvector
+python-dotenv
+pandas
+pyyaml
+tqdm
+pymupdf
+rich
