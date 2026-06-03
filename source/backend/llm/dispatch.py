@@ -10,7 +10,7 @@ import litellm
 
 from llm import config
 
-OLLAMA_MODEL = "ollama/mistral"
+OLLAMA_MODEL = "ollama/llama3.2"
 CLOUD_MODEL = "groq/llama3-8b-8192"
 
 
