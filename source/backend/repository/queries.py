@@ -14,17 +14,17 @@ from schemas.retrieval import RetrievalResult
 
 _RETRIEVAL_SQL = text("""
 SELECT
-    c.id::text                               AS id,
-    COALESCE(d.mod, '')                      AS mod,
-    d.filename                               AS file,
-    NULL::text                               AS ts,
-    LEFT(c.text, 200)                        AS snip,
-    1 - (e.vector <=> :query_vec::vector)    AS score,
-    c.text                                   AS text
+    c.id::text                                          AS id,
+    COALESCE(d.mod, '')                                 AS mod,
+    d.filename                                          AS file,
+    NULL::text                                          AS ts,
+    LEFT(c.text, 200)                                   AS snip,
+    1 - (e.vector <=> CAST(:query_vec AS vector))       AS score,
+    c.text                                              AS text
 FROM embeddings e
 JOIN chunks   c ON c.id  = e.chunk_id
 JOIN documents d ON d.id = c.document_id
-ORDER BY e.vector <=> :query_vec::vector
+ORDER BY e.vector <=> CAST(:query_vec AS vector)
 LIMIT :top_k
 """)
 
@@ -42,8 +42,11 @@ async def retrieve(
         query_vec: 768-dim embedding from nomic-embed-text (must match index dim)
         top_k:     number of results to return
     """
+    # Probe all IVFFlat lists — critical for small corpora; acceptable overhead for large ones.
+    await session.execute(text("SET LOCAL ivfflat.probes = 100"))
+    vec_str = "[" + ",".join(str(v) for v in query_vec) + "]"
     result = await session.execute(
-        _RETRIEVAL_SQL, {"query_vec": query_vec, "top_k": top_k}
+        _RETRIEVAL_SQL, {"query_vec": vec_str, "top_k": top_k}
     )
     rows = result.fetchall()
     return [

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>germ//clone — Phase 1 test UI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --bg2:      #161b22;
+      --panel:    #1c2128;
+      --line:     #30363d;
+      --green:    #3fb950;
+      --green-dim:#196127;
+      --amber:    #d29922;
+      --red:      #f85149;
+      --blue:     #388bfd;
+      --txt:      #e6edf3;
+      --txt-dim:  #8b949e;
+      --txt-faint:#484f58;
+      --radius:   10px;
+      --mono:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg2);
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+    header h1 span { color: var(--green); }
+    .badge {
+      font-size: 10px;
+      font-family: var(--mono);
+      background: var(--green-dim);
+      color: var(--green);
+      padding: 2px 7px;
+      border-radius: 20px;
+      border: 1px solid var(--green-dim);
+    }
+    .backend-pill {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--txt-dim);
+    }
+    .backend-pill select {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--txt);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      flex-shrink: 0;
+    }
+    #status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+    /* ── Main layout ── */
+    main {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Pipeline rail ── */
+    #pipeline {
+      border-right: 1px solid var(--line);
+      padding: 16px 14px;
+      overflow-y: auto;
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #pipeline h2 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--txt-faint);
+      margin-bottom: 6px;
+    }
+    .stage-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: background 0.2s, border-color 0.2s;
+      min-height: 40px;
+    }
+    .stage-row.pending  { opacity: 0.35; }
+    .stage-row.active   { background: color-mix(in srgb, var(--blue) 10%, transparent); border-color: var(--blue); }
+    .stage-row.done     { border-color: var(--line); }
+    .stage-row.done.pass { border-color: var(--green); background: color-mix(in srgb, var(--green) 6%, transparent); }
+    .stage-row.done.fail { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 6%, transparent); }
+    .stage-row.skipped  { opacity: 0.2; }
+
+    .stage-icon {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+    .stage-row.pending  .stage-icon { background: var(--panel); color: var(--txt-faint); }
+    .stage-row.active   .stage-icon { background: var(--blue); color: #fff; animation: pulse 1s infinite; }
+    .stage-row.done     .stage-icon { background: var(--green-dim); color: var(--green); }
+    .stage-row.done.fail .stage-icon { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+    .stage-body { flex: 1; min-width: 0; }
+    .stage-name {
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--txt);
+    }
+    .stage-detail {
+      font-size: 11px;
+      color: var(--txt-dim);
+      margin-top: 2px;
+      word-break: break-word;
+    }
+    .stage-scores {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+    .score-chip {
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      color: var(--txt-dim);
+    }
+    .score-chip.pass { border-color: var(--green); color: var(--green); }
+    .score-chip.fail { border-color: var(--amber); color: var(--amber); }
+    .verdict-chip {
+      margin-top: 4px;
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .verdict-chip.pass { background: var(--green-dim); color: var(--green); }
+    .verdict-chip.fail { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+
+    /* ── Answer area ── */
+    #answer-area {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #answer-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+    .welcome {
+      color: var(--txt-faint);
+      font-size: 13px;
+      text-align: center;
+      margin-top: 60px;
+      line-height: 1.8;
+    }
+    .welcome strong { color: var(--txt-dim); }
+
+    /* Quick-ask chips */
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .quick-chip {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--txt);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .quick-chip:hover { border-color: var(--green); background: color-mix(in srgb, var(--green) 8%, transparent); }
+
+    /* Answer prose */
+    #prose {
+      max-width: 720px;
+    }
+    #prose h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+    #prose h3 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--txt-dim); }
+    #prose p  { font-size: 13px; line-height: 1.7; color: var(--txt); margin-bottom: 10px; }
+    #prose strong { color: var(--txt); }
+    #prose code  {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    /* Citations */
+    #citations {
+      margin-top: 20px;
+      max-width: 720px;
+    }
+    #citations h3 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--txt-faint);
+      margin-bottom: 10px;
+    }
+    .citation-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: var(--panel);
+    }
+    .citation-card .cit-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .cit-id {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--green-dim);
+      color: var(--green);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .cit-mod {
+      font-size: 11px;
+      color: var(--txt-dim);
+      font-family: var(--mono);
+    }
+    .cit-score {
+      margin-left: auto;
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--txt-faint);
+    }
+    .cit-snip {
+      font-size: 12px;
+      color: var(--txt-dim);
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* ── Composer ── */
+    footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      background: var(--bg2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #input {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 14px;
+      color: var(--txt);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #input:focus { border-color: var(--blue); }
+    #input:disabled { opacity: 0.5; cursor: not-allowed; }
+    #send {
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    #send:disabled { opacity: 0.4; cursor: not-allowed; }
+    #send:not(:disabled):hover { opacity: 0.85; }
+
+    /* difficulty selector */
+    #difficulty {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--txt-dim);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* thinking indicator */
+    #thinking {
+      display: none;
+      color: var(--amber);
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    #thinking.visible { display: block; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────── -->
+<header>
+  <div id="status-dot" class="offline" title="checking backend…"></div>
+  <h1>germ<span>//</span>clone <span style="font-weight:400;color:var(--txt-dim)">·</span> Phase 1 test</h1>
+  <div class="badge">:8007</div>
+  <div class="backend-pill">
+    backend
+    <select id="backend-select">
+      <option value="ollama">ollama</option>
+      <option value="cloud">cloud</option>
+    </select>
+  </div>
+</header>
+
+<!-- ── Main ──────────────────────────────────────── -->
+<main>
+
+  <!-- Pipeline rail -->
+  <div id="pipeline">
+    <h2>pipeline</h2>
+  </div>
+
+  <!-- Answer area -->
+  <div id="answer-area">
+    <div id="answer-scroll">
+      <div class="welcome" id="welcome">
+        <strong>germ//clone Phase 1 test harness</strong><br/>
+        Backend mock streamer on <code style="color:var(--green);background:var(--panel);padding:1px 6px;border-radius:4px;font-size:11px;">localhost:8007</code><br/>
+        Type a question or pick a topic:
+        <div class="quick-chips">
+          <button class="quick-chip" onclick="ask('Why does my model overfit?')">Why does my model overfit?</button>
+          <button class="quick-chip" onclick="ask('L1 vs L2 regularization')">L1 vs L2 regularization</button>
+          <button class="quick-chip" onclick="ask('How do I choose k in KNN?')">How do I choose k in KNN?</button>
+          <button class="quick-chip" onclick="ask('What does the learning rate do in gradient descent?')">Gradient descent learning rate</button>
+        </div>
+      </div>
+      <div id="thinking">▌ pipeline running…</div>
+      <div id="prose"></div>
+      <div id="citations"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Composer ───────────────────────────────────── -->
+<footer>
+  <select id="difficulty">
+    <option value="eli5">eli5</option>
+    <option value="standard" selected>standard</option>
+    <option value="academia">academia</option>
+  </select>
+  <input id="input" type="text" placeholder="Ask an ML question…" autocomplete="off" />
+  <button id="send" onclick="submitInput()">Ask ↵</button>
+</footer>
+
+<script>
+const BASE = 'http://localhost:8007';
+
+const STAGES = [
+  { key: 'route',     label: 'route',        icon: '⊞' },
+  { key: 'rewrite',   label: 'rewrite',      icon: '✎' },
+  { key: 'retrieve1', label: 'retrieve·1',   icon: '⊙' },
+  { key: 'react',     label: 'react',        icon: '⚡' },
+  { key: 'reflect',   label: 'reflect',      icon: '◎' },
+  { key: 'evaluate1', label: 'evaluate·1',   icon: '▣' },
+  { key: 'retrieve2', label: 'retrieve·2',   icon: '⊙' },
+  { key: 'evaluate2', label: 'evaluate·2',   icon: '▣' },
+  { key: 'compose',   label: 'compose',      icon: '✦' },
+];
+
+let running = false;
+let currentSource = null;
+
+// ── Ping health ──────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(`${BASE}/health`);
+    const dot = document.getElementById('status-dot');
+    if (r.ok) {
+      dot.className = '';
+      dot.title = 'backend OK';
+    } else {
+      dot.className = 'offline';
+      dot.title = 'backend error';
+    }
+  } catch {
+    document.getElementById('status-dot').className = 'offline';
+    document.getElementById('status-dot').title = 'backend offline';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 5000);
+
+// ── Sync backend select with actual server state ─────────
+async function syncBackend() {
+  try {
+    const r = await fetch(`${BASE}/settings/inference`);
+    if (r.ok) {
+      const { backend } = await r.json();
+      document.getElementById('backend-select').value = backend;
+    }
+  } catch {}
+}
+syncBackend();
+
+document.getElementById('backend-select').addEventListener('change', async (e) => {
+  try {
+    await fetch(`${BASE}/settings/inference`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backend: e.target.value }),
+    });
+  } catch {
+    alert('Could not reach backend to toggle inference.');
+  }
+});
+
+// ── Build pipeline rail ──────────────────────────────────
+function buildRail() {
+  const rail = document.getElementById('pipeline');
+  const h2 = rail.querySelector('h2');
+  rail.innerHTML = '';
+  rail.appendChild(h2);
+  for (const s of STAGES) {
+    const row = document.createElement('div');
+    row.className = 'stage-row pending';
+    row.id = `stage-${s.key}`;
+    row.innerHTML = `
+      <div class="stage-icon">${s.icon}</div>
+      <div class="stage-body">
+        <div class="stage-name">${s.label}</div>
+        <div class="stage-detail" id="detail-${s.key}">—</div>
+      </div>`;
+    rail.appendChild(row);
+  }
+}
+
+function updateStage(event) {
+  const row = document.getElementById(`stage-${event.stage}`);
+  if (!row) return;
+
+  const detail = document.getElementById(`detail-${event.stage}`);
+
+  // status class
+  row.className = 'stage-row';
+  if (event.status === 'active') {
+    row.classList.add('active');
+  } else if (event.status === 'done') {
+    row.classList.add('done');
+    if (event.scores) {
+      const mean = (event.scores.f + event.scores.r + event.scores.c) / 3;
+      row.classList.add(mean >= 0.80 ? 'pass' : 'fail');
+    }
+  }
+
+  // detail text
+  if (event.detail) detail.textContent = event.detail;
+
+  // scores + verdict
+  if (event.scores) {
+    const sc = event.scores;
+    const fmt = (v) => v.toFixed(2);
+    const chip = (label, v) =>
+      `<span class="score-chip ${v >= 0.8 ? 'pass' : 'fail'}">${label}:${fmt(v)}</span>`;
+    const mean = (sc.f + sc.r + sc.c) / 3;
+    const vClass = mean >= 0.8 ? 'pass' : 'fail';
+    const vText = event.verdict || (mean >= 0.8 ? 'PASS' : 'BELOW');
+    detail.innerHTML = `
+      <div class="stage-scores">
+        ${chip('f', sc.f)}${chip('r', sc.r)}${chip('c', sc.c)}
+      </div>
+      <div class="verdict-chip ${vClass}">${vText}</div>`;
+  }
+}
+
+// ── Simple markdown renderer ─────────────────────────────
+function renderMarkdown(md) {
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[(\d+)\]/g, '<sup style="color:var(--green);font-family:var(--mono);font-size:10px;cursor:default" title="citation $1">[$1]</sup>')
+    .split('\n\n')
+    .map(para => para.startsWith('<h') ? para : `<p>${para.replace(/\n/g, '<br/>')}</p>`)
+    .join('\n');
+}
+
+// ── Main ask flow ─────────────────────────────────────────
+async function ask(query) {
+  if (running) return;
+  running = true;
+
+  const difficulty = document.getElementById('difficulty').value;
+  const inputEl = document.getElementById('input');
+  const sendEl  = document.getElementById('send');
+  inputEl.value = '';
+  inputEl.disabled = true;
+  sendEl.disabled = true;
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('prose').innerHTML = '';
+  document.getElementById('citations').innerHTML = '';
+  document.getElementById('thinking').className = 'visible';
+
+  buildRail();
+
+  const url = new URL(`${BASE}/ask`);
+  url.searchParams.set('q', query);
+  url.searchParams.set('profile_id', 'test-ui');
+  url.searchParams.set('difficulty', difficulty);
+
+  // EventSource doesn't support custom headers but works fine for GET SSE
+  const es = new EventSource(url.toString());
+  currentSource = es;
+
+  es.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    updateStage(event);
+
+    if (event.stage === 'compose' && event.status === 'done') {
+      es.close();
+      currentSource = null;
+      renderCompose(event);
+      finishRun(inputEl, sendEl);
+    }
+  };
+
+  es.onerror = () => {
+    es.close();
+    currentSource = null;
+    document.getElementById('thinking').className = '';
+    document.getElementById('prose').innerHTML =
+      '<p style="color:var(--red)">⚠ Could not connect to <code>localhost:8007</code>. Is the backend running?</p>';
+    finishRun(inputEl, sendEl);
+  };
+}
+
+function renderCompose(event) {
+  document.getElementById('thinking').className = '';
+
+  // Answer prose
+  if (event.answer_md) {
+    document.getElementById('prose').innerHTML = renderMarkdown(event.answer_md);
+  }
+
+  // Citations
+  if (event.citations && event.citations.length) {
+    const el = document.getElementById('citations');
+    el.innerHTML = '<h3>Sources</h3>';
+    for (const c of event.citations) {
+      const card = document.createElement('div');
+      card.className = 'citation-card';
+      card.innerHTML = `
+        <div class="cit-top">
+          <span class="cit-id">[${c.id}]</span>
+          <span class="cit-mod">mod ${c.mod} · ${c.file}</span>
+          <span class="cit-score">score ${c.score.toFixed(2)}</span>
+        </div>
+        <div class="cit-snip">"${c.snip}"</div>`;
+      el.appendChild(card);
+    }
+  }
+}
+
+function finishRun(inputEl, sendEl) {
+  running = false;
+  inputEl.disabled = false;
+  sendEl.disabled = false;
+  inputEl.focus();
+}
+
+function submitInput() {
+  const q = document.getElementById('input').value.trim();
+  if (q && !running) ask(q);
+}
+
+document.getElementById('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitInput();
+});
+</script>
+</body>
+</html>

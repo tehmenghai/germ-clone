@@ -1,0 +1,26 @@
+"""
+LLM provider configuration.
+Reads env vars on import; exposes get/set_backend() for the inference-toggle endpoint.
+"""
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OLLAMA_URL: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
+
+_state: dict[str, str] = {
+    "backend": os.getenv("INFERENCE_BACKEND", "ollama"),
+}
+
+VALID_BACKENDS = {"ollama", "cloud"}
+
+
+def get_backend() -> str:
+    return _state["backend"]
+
+
+def set_backend(backend: str) -> None:
+    if backend not in VALID_BACKENDS:
+        raise ValueError(f"backend must be one of {VALID_BACKENDS}")
+    _state["backend"] = backend
