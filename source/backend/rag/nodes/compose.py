@@ -27,7 +27,13 @@ _TONE: dict[str, str] = {
 _SYSTEM_TMPL = """\
 You are an ML tutor answering a student's question in Markdown.
 
-Use inline citations [N] to reference the numbered chunks provided.
+The CHUNKS section below is numbered [1], [2], [3], … — use those exact numbers \
+as inline citations inside your answer. For example: "Gradient descent [1] \
+iteratively reduces the loss by...". Every factual claim should cite at least one chunk.
+
+End your answer with a ## References section listing only the chunks you cited, \
+in the format: [1] filename, [2] filename, …
+
 {tone}
 
 Structure: clear headings, concise paragraphs, LaTeX math where helpful (use $...$)."""
