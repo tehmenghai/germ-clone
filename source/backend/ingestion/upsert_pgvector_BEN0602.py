@@ -34,12 +34,9 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 ENV_FILE = PROJECT_ROOT / "source/backend/ingestion/.env_BEN0601"
 CHUNKS_PATH = PROJECT_ROOT / "data_BEN0602/chunks_BEN0602/chunks_BEN0602.jsonl"
 
-# Reuse BEN0601's embedding function — same model, same API key
 BEN0601_DIR = PROJECT_ROOT / "source/backend/ingestion"
 sys.path.insert(0, str(BEN0601_DIR))
-from embed_google_BEN0601 import embed_document  # noqa: E402
 
-EMBEDDING_MODEL = "gemini-embedding-2"
 LLM_MODEL = "gemini-2.5-flash"
 EMBEDDING_DIM = 768
 
@@ -87,7 +84,10 @@ def main() -> None:
         print("[ERROR] DATABASE_URL not set in .env_BEN0601")
         sys.exit(1)
 
-    if not os.getenv("GEMINI_API_KEY"):
+    embedding_provider = os.getenv("EMBEDDING_PROVIDER", "google")
+    embedding_model = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")
+
+    if embedding_provider == "google" and not os.getenv("GEMINI_API_KEY"):
         print("[ERROR] GEMINI_API_KEY not set in .env_BEN0601")
         sys.exit(1)
 
@@ -96,9 +96,20 @@ def main() -> None:
         print("        Run llm_clean_chunk_BEN0602.py first.")
         sys.exit(1)
 
+    # Build the embedding function based on selected provider
+    if embedding_provider == "google":
+        from embed_google_BEN0601 import embed_document as _embed_fn
+        def embed_chunk(text: str) -> list[float]:
+            return _embed_fn(text, model=embedding_model)
+    else:
+        import asyncio
+        from embedder import embed_text as _async_embed
+        def embed_chunk(text: str) -> list[float]:
+            return asyncio.run(_async_embed(text))
+
     chunks = load_chunks(CHUNKS_PATH)
     print(f"[INFO]  Chunks loaded   : {len(chunks)}")
-    print(f"[INFO]  Embedding model : {EMBEDDING_MODEL}  (dim {EMBEDDING_DIM})")
+    print(f"[INFO]  Embedding model : {embedding_model}  (provider: {embedding_provider}, dim {EMBEDDING_DIM})")
 
     print("[INFO]  Connecting to Neon PostgreSQL...")
     try:
@@ -116,7 +127,7 @@ def main() -> None:
     with conn.cursor() as cur:
         for chunk in tqdm(chunks, desc="Embedding + upsert", unit="chunk"):
             try:
-                vec = embed_document(chunk["chunk_text"], model=EMBEDDING_MODEL)
+                vec = embed_chunk(chunk["chunk_text"])
 
                 cur.execute(
                     UPSERT_SQL,

@@ -5,6 +5,9 @@ Returns RetrievalResult shapes defined in schemas/retrieval.py.
 
 DO NOT change return field names without notifying Meng Hai first.
 See docs/contracts.md.
+
+Reads from rag_chunks_ben0602 (Ben's ingestion table, 205 chunks, all modules).
+query_vec must be embedded with the same model used at index time (gemini-embedding-2 by default).
 """
 
 from sqlalchemy import text
@@ -14,17 +17,15 @@ from schemas.retrieval import RetrievalResult
 
 _RETRIEVAL_SQL = text("""
 SELECT
-    c.id::text                                          AS id,
-    COALESCE(d.mod, '')                                 AS mod,
-    d.filename                                          AS file,
-    NULL::text                                          AS ts,
-    LEFT(c.text, 200)                                   AS snip,
-    1 - (e.vector <=> CAST(:query_vec AS vector))       AS score,
-    c.text                                              AS text
-FROM embeddings e
-JOIN chunks   c ON c.id  = e.chunk_id
-JOIN documents d ON d.id = c.document_id
-ORDER BY e.vector <=> CAST(:query_vec AS vector)
+    chunk_id                                                              AS id,
+    REGEXP_REPLACE(source_file, '.*?([0-9]+\\.[0-9]+).*', '\\1', '')    AS mod,
+    source_file                                                           AS file,
+    page_number::text                                                     AS ts,
+    LEFT(COALESCE(clean_markdown, chunk_text), 200)                      AS snip,
+    1 - (embedding <=> CAST(:query_vec AS vector))                       AS score,
+    COALESCE(clean_markdown, chunk_text)                                  AS text
+FROM rag_chunks_ben0602
+ORDER BY embedding <=> CAST(:query_vec AS vector)
 LIMIT :top_k
 """)
 
@@ -35,11 +36,11 @@ async def retrieve(
     top_k: int = 5,
 ) -> list[RetrievalResult]:
     """
-    Cosine-similarity retrieval over the embeddings table.
+    Cosine-similarity retrieval over rag_chunks_ben0602.
 
     Args:
         session:   active async SQLAlchemy session
-        query_vec: 768-dim embedding from nomic-embed-text (must match index dim)
+        query_vec: 768-dim embedding — must match the model used at index time
         top_k:     number of results to return
     """
     # Probe all IVFFlat lists — critical for small corpora; acceptable overhead for large ones.
