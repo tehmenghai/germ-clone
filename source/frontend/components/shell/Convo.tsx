@@ -144,7 +144,7 @@ export function Convo({
                   onSubmit();
                 }
               }}
-              placeholder="Ask about any concept in modules 3.1–3.10…"
+              placeholder="Ask a question about Module 3…"
               disabled={phase === "running"}
               aria-label="Ask a question"
               style={{
