@@ -70,6 +70,7 @@ async def compose_node(state: GraphState) -> dict:
             citations.append(Citation(
                 id=n, mod=c.mod, file=c.file,
                 ts=c.ts, snip=c.snip, score=c.score,
+                text=c.text,
             ))
             sources.append(Source(id=n, score=c.score))
 

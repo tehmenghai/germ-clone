@@ -36,8 +36,9 @@ class Citation(BaseModel):
     mod: str       # e.g. "3.3"
     file: str
     ts: Optional[str] = None   # timestamp or page ref
-    snip: str      # short excerpt
+    snip: str      # short excerpt ≤200 chars
     score: float
+    text: Optional[str] = None  # full chunk text; FE can display on citation click
 
 
 class Source(BaseModel):
