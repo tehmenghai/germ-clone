@@ -12,7 +12,9 @@ import { DigitalRain } from "@/components/fx/DigitalRain";
 import { RagGraphPanel } from "@/components/pipeline/RagGraphPanel";
 import { ConsoleChips } from "@/components/workspace/ConsoleChips";
 import { AnswerProse } from "@/components/workspace/AnswerProse";
-import { mockStream, type StageEvent } from "@/lib/mock-stream";
+import { askStream } from "@/lib/api";
+import { detectActiveModules } from "@/lib/topics";
+import type { StageEvent } from "@/lib/mock-stream";
 
 export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -32,8 +34,8 @@ export default function HomePage() {
 
   const runningRef = useRef(false);
 
-  const handleAsk = useCallback(async (q: string) => {
-    if (runningRef.current) return;
+  const handleAsk = useCallback((q: string) => {
+    if (runningRef.current || !profile) return;
     runningRef.current = true;
 
     setCurrentQuery(q);
@@ -46,20 +48,30 @@ export default function HomePage() {
     const collected: StageEvent[] = [];
     let idx = 0;
 
-    try {
-      for await (const event of mockStream(q)) {
-        collected.push(event);
-        setEvents([...collected]);
-        setActiveIdx(idx);
-        idx++;
+    const es = askStream(q, profile.id, difficulty);
+
+    es.onmessage = (e) => {
+      const event: StageEvent = JSON.parse(e.data);
+      collected.push(event);
+      setEvents([...collected]);
+      setActiveIdx(idx);
+      idx++;
+      if (event.stage === "compose" && event.status === "done") {
+        es.close();
+        finish();
       }
-    } finally {
+    };
+
+    es.onerror = () => {
+      es.close();
+      finish();
+    };
+
+    function finish() {
       setPhase("done");
       runningRef.current = false;
-
       const compose = collected.find((e) => e.stage === "compose" && e.status === "done");
       const lastEval = [...collected].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
-
       setMsgs((m) => [
         ...m,
         {
@@ -70,7 +82,7 @@ export default function HomePage() {
         },
       ]);
     }
-  }, []);
+  }, [profile, difficulty]);
 
   function handleSubmit() {
     const q = input.trim();
@@ -102,6 +114,7 @@ export default function HomePage() {
         difficulty={difficulty}
         onDifficulty={setDifficulty}
         onSettings={() => setSettingsOpen(true)}
+        onHome={() => { setMsgs([]); setEvents([]); setCurrentQuery(""); setPhase("idle"); setActiveIdx(-1); setInput(""); }}
         ragPipeActive={ragPipeActive}
         onRagPipe={() => setRagPipeActive((v) => !v)}
         hasActiveTopic={hasActiveTopic}
@@ -233,15 +246,6 @@ const MODULES = [
   ["3.4", "Sup.Adv"], ["3.5", "Unsup"], ["3.6", "TimeSeries"],
   ["3.7", "NeuralNet"], ["3.8", "CV"], ["3.9", "NLP"], ["3.10", "NLP+"],
 ];
-
-function detectActiveModules(query: string): string[] {
-  const q = query.toLowerCase();
-  if (q.includes("bias") || q.includes("variance") || q.includes("overfit")) return ["3.3", "3.4"];
-  if (q.includes("regular") || q.includes("lasso") || q.includes("ridge")) return ["3.4"];
-  if (q.includes("knn") || q.includes("nearest")) return ["3.2", "3.3"];
-  if (q.includes("gradient") || q.includes("descent")) return ["3.7"];
-  return [];
-}
 
 function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onInput, onSubmit, onAsk }: LayoutProps) {
   const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");

@@ -7,8 +7,8 @@ interface Props {
 }
 
 const W = 480;
-const H = 280;
-const PAD = { top: 28, right: 24, bottom: 48, left: 52 };
+const H = 320;
+const PAD = { top: 32, right: 28, bottom: 52, left: 56 };
 const IW = W - PAD.left - PAD.right;
 const IH = H - PAD.top - PAD.bottom;
 
@@ -73,7 +73,7 @@ export function BiasVarianceViz({ interactive = true }: Props) {
     <div style={{ fontFamily: "var(--font-mono, monospace)" }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: "100%", height: "auto", display: "block" }}
+        style={{ width: "100%", height: "auto", display: "block", minHeight: 220 }}
         aria-label="Bias-Variance trade-off chart"
         role="img"
       >
@@ -99,23 +99,23 @@ export function BiasVarianceViz({ interactive = true }: Props) {
             <line x1={PAD.left - 4} x2={PAD.left} y1={yToPixel(t, maxY)} y2={yToPixel(t, maxY)}
               stroke="var(--line)" strokeWidth={1} />
             <text x={PAD.left - 7} y={yToPixel(t, maxY) + 4}
-              textAnchor="end" fontSize={9} fill="var(--txt-faint)">
+              textAnchor="end" fontSize={11} fill="var(--txt-faint)">
               {t.toFixed(2)}
             </text>
           </g>
         ))}
 
         {/* X axis labels */}
-        <text x={PAD.left} y={H - PAD.bottom + 14} fontSize={9} fill="var(--txt-faint)">Low</text>
-        <text x={W - PAD.right} y={H - PAD.bottom + 14} textAnchor="end" fontSize={9} fill="var(--txt-faint)">High</text>
-        <text x={PAD.left + IW / 2} y={H - 8} textAnchor="middle" fontSize={9} fill="var(--txt-dim)">
+        <text x={PAD.left} y={H - PAD.bottom + 14} fontSize={11} fill="var(--txt-faint)">Low</text>
+        <text x={W - PAD.right} y={H - PAD.bottom + 14} textAnchor="end" fontSize={11} fill="var(--txt-faint)">High</text>
+        <text x={PAD.left + IW / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--txt-dim)">
           Model Complexity
         </text>
 
         {/* Y axis label */}
         <text
           x={12} y={PAD.top + IH / 2}
-          textAnchor="middle" fontSize={9} fill="var(--txt-dim)"
+          textAnchor="middle" fontSize={11} fill="var(--txt-dim)"
           transform={`rotate(-90, 12, ${PAD.top + IH / 2})`}
         >
           Error

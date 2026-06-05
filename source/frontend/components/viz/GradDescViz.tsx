@@ -125,7 +125,7 @@ export function GradDescViz({ interactive = true }: Props) {
       ctx.stroke();
 
       ctx.fillStyle = txtFaint;
-      ctx.font = "9px monospace";
+      ctx.font = "11px monospace";
       ctx.textAlign = "right";
       ctx.fillText(l.toFixed(0), PAD.left - 6, py + 4);
     });
@@ -142,7 +142,7 @@ export function GradDescViz({ interactive = true }: Props) {
 
     // Axis labels
     ctx.fillStyle = txtDim;
-    ctx.font = "9px monospace";
+    ctx.font = "11px monospace";
     ctx.textAlign = "center";
     ctx.fillText("w (weight)", PAD.left + IW / 2, H - 8);
 
@@ -197,7 +197,7 @@ export function GradDescViz({ interactive = true }: Props) {
 
       // Step label
       ctx.fillStyle = varColor;
-      ctx.font = "bold 10px monospace";
+      ctx.font = "bold 11px monospace";
       ctx.textAlign = "left";
       ctx.fillText(`step ${step}  J=${last.l.toFixed(3)}  w=${last.w.toFixed(3)}`, lpx + 8, lpy - 6);
     }
@@ -209,13 +209,13 @@ export function GradDescViz({ interactive = true }: Props) {
     ctx.fill();
 
     // Legend
-    ctx.font = "10px monospace";
+    ctx.font = "11px monospace";
     ctx.textAlign = "left";
     [["sgd", "SGD", cyan], ["momentum", "Momentum", amber], ["adam", "Adam", green]].forEach(([_v, label, color], i) => {
       ctx.fillStyle = color as string;
-      ctx.fillRect(PAD.left + IW - 90, PAD.top + i * 16, 14, 2);
+      ctx.fillRect(PAD.left + IW - 90, PAD.top + i * 18, 14, 2);
       ctx.fillStyle = txtDim;
-      ctx.fillText(label as string, PAD.left + IW - 72, PAD.top + i * 16 + 5);
+      ctx.fillText(label as string, PAD.left + IW - 72, PAD.top + i * 18 + 5);
     });
   }, [step, variant, lr, history]);
 

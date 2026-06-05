@@ -1,39 +1,78 @@
 "use client";
 
 import { useState } from "react";
+import { BlockMath } from "react-katex";
 import { VizPanel } from "@/components/viz/VizPanel";
+import { detectTopic } from "@/lib/topics";
 
-// Math equations per topic — mirrors content.jsx TOPICS[].math
 const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
   "bias-variance": [
-    { eq: "Error = Bias² + Variance + ε", note: "Total generalisation error decomposition" },
-    { eq: "Bias = E[ŷ] − y", note: "Systematic offset of predictions from truth" },
-    { eq: "Variance = E[(ŷ − E[ŷ])²]", note: "Sensitivity to training-set fluctuations" },
+    {
+      eq: "\\text{Error} = \\text{Bias}^2 + \\text{Variance} + \\varepsilon",
+      note: "Total generalisation error decomposition",
+    },
+    {
+      eq: "\\text{Bias} = \\mathbb{E}[\\hat{y}] - y",
+      note: "Systematic offset of predictions from truth",
+    },
+    {
+      eq: "\\text{Variance} = \\mathbb{E}\\!\\left[(\\hat{y} - \\mathbb{E}[\\hat{y}])^2\\right]",
+      note: "Sensitivity to training-set fluctuations",
+    },
   ],
   "regularization": [
-    { eq: "L(w) = MSE(w) + λΩ(w)", note: "Regularised objective adds penalty term Ω" },
-    { eq: "Ω_L1 = Σ|wᵢ|", note: "Lasso (L1): produces sparse weights — some go to exactly 0" },
-    { eq: "Ω_L2 = Σwᵢ²", note: "Ridge (L2): shrinks all weights; none reach 0" },
+    {
+      eq: "\\mathcal{L}(w) = \\frac{1}{n}\\sum_{i=1}^{n}(y_i - \\hat{y}_i)^2 + \\lambda\\,\\Omega(w)",
+      note: "Regularised objective: MSE loss plus penalty term Ω",
+    },
+    {
+      eq: "\\Omega_{L1} = \\sum_{j}|w_j|",
+      note: "Lasso (L1): produces sparse weights — some go to exactly 0",
+    },
+    {
+      eq: "\\Omega_{L2} = \\sum_{j} w_j^2",
+      note: "Ridge (L2): shrinks all weights; none reach 0",
+    },
   ],
   "knn": [
-    { eq: "ŷ = mode({yᵢ : xᵢ ∈ Nₖ(x)})", note: "Predicted class = majority vote of k nearest neighbours" },
-    { eq: "d(x, xᵢ) = √Σ(xⱼ − xᵢⱼ)²", note: "Euclidean distance (most common metric)" },
+    {
+      eq: "\\hat{y} = \\operatorname{mode}\\!\\left(\\{y_i : x_i \\in \\mathcal{N}_k(x)\\}\\right)",
+      note: "Predicted class = majority vote of k nearest neighbours",
+    },
+    {
+      eq: "d(x,\\, x_i) = \\sqrt{\\sum_{j=1}^{p}(x_j - x_{ij})^2}",
+      note: "Euclidean distance (most common metric)",
+    },
   ],
   "gradient-descent": [
-    { eq: "w ← w − α∇J(w)", note: "Single gradient step; α is the learning rate" },
-    { eq: "J(w) = (1/n)Σℒ(yᵢ, f(xᵢ;w))", note: "Average loss over training set" },
-    { eq: "∇J(w) = (2/n)Xᵀ(Xw − y)", note: "Gradient of MSE loss (linear regression)" },
+    {
+      eq: "w \\leftarrow w - \\alpha\\,\\nabla J(w)",
+      note: "Single gradient step; α is the learning rate",
+    },
+    {
+      eq: "J(w) = \\frac{1}{n}\\sum_{i=1}^{n}\\ell\\!\\left(y_i,\\, f(x_i;\\,w)\\right)",
+      note: "Average loss over training set",
+    },
+    {
+      eq: "\\nabla J(w) = \\frac{2}{n}X^\\top(Xw - y)",
+      note: "Gradient of MSE loss (linear regression)",
+    },
+  ],
+  "confusion-matrix": [
+    {
+      eq: "\\text{Precision} = \\frac{TP}{TP + FP}",
+      note: "Of everything flagged positive, how much was right",
+    },
+    {
+      eq: "\\text{Recall} = \\frac{TP}{TP + FN}",
+      note: "Of all actual positives, how many were caught",
+    },
+    {
+      eq: "F_1 = 2 \\cdot \\frac{\\text{Precision} \\cdot \\text{Recall}}{\\text{Precision} + \\text{Recall}}",
+      note: "Harmonic mean — balances precision against recall",
+    },
   ],
 };
-
-function detectTopic(query: string): string | null {
-  const q = query.toLowerCase();
-  if (q.includes("bias") || q.includes("variance") || q.includes("overfit")) return "bias-variance";
-  if (q.includes("regular") || q.includes("lasso") || q.includes("ridge")) return "regularization";
-  if (q.includes("knn") || q.includes("nearest")) return "knn";
-  if (q.includes("gradient") || q.includes("descent") || q.includes("sgd")) return "gradient-descent";
-  return null;
-}
 
 interface MLWorkspaceProps {
   query: string;
@@ -165,19 +204,16 @@ export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
               <div key={i}>
                 <div
                   style={{
-                    fontFamily: "'Newsreader', Georgia, serif",
-                    fontSize: "var(--font-eq)",
-                    fontStyle: "italic",
                     textAlign: "center",
                     border: "1px solid var(--line-soft)",
                     borderRadius: 10,
                     background: "var(--bg-2)",
-                    padding: "14px 18px",
+                    padding: "18px 24px",
                     color: "var(--txt)",
-                    lineHeight: 1.4,
+                    overflowX: "auto",
                   }}
                 >
-                  {eq}
+                  <BlockMath math={eq} />
                 </div>
                 <p
                   style={{
@@ -236,7 +272,7 @@ function EmptyState({ hasQuery }: { hasQuery: boolean }) {
           </p>
           <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "26ch", lineHeight: 1.5 }}>
             The grounded answer is on the left. Live visuals currently cover bias–variance,
-            regularization, KNN and gradient descent.
+            regularization, KNN, gradient descent and confusion matrix.
           </p>
         </>
       ) : (
