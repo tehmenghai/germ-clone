@@ -16,7 +16,7 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -127,8 +127,32 @@ class Chunk(Base):
     document_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), sa.ForeignKey("documents.id"), nullable=False
     )
+    # Combined embedding field: clean_markdown + keywords + questions joined.
+    # Embed this field — never embed clean_markdown directly.
     text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     chunk_index: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    # Added by migration 002 — RAG enrichment fields
+    source_type: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default="pdf"
+    )  # 'pdf' | 'transcript' | 'textbook'
+    lesson_title: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    topic: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    clean_markdown: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    retrieval_keywords: Mapped[list[str] | None] = mapped_column(
+        ARRAY(sa.Text), nullable=True
+    )
+    sample_questions: Mapped[list[str] | None] = mapped_column(
+        ARRAY(sa.Text), nullable=True
+    )
+    # SQLAlchemy reserves 'metadata' — use 'chunk_metadata' as the Python attr;
+    # the DB column is still named 'metadata'.
+    chunk_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
+    # Added by migration 003
+    page_number: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    token_estimate: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+    )
 
     document: Mapped["Document"] = relationship(back_populates="chunks")
     embedding: Mapped["Embedding | None"] = relationship(

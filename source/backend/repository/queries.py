@@ -6,8 +6,8 @@ Returns RetrievalResult shapes defined in schemas/retrieval.py.
 DO NOT change return field names without notifying Meng Hai first.
 See docs/contracts.md.
 
-Reads from rag_chunks_ben0602 (Ben's ingestion table, 205 chunks, all modules).
-query_vec must be embedded with the same model used at index time (gemini-embedding-2 by default).
+Reads from canonical embeddings → chunks → documents tables (migration 002/003).
+query_vec must be embedded with gemini-embedding-2 (matches stored vectors).
 """
 
 from sqlalchemy import text
@@ -17,15 +17,20 @@ from schemas.retrieval import RetrievalResult
 
 _RETRIEVAL_SQL = text("""
 SELECT
-    chunk_id                                                              AS id,
-    REGEXP_REPLACE(source_file, '.*?([0-9]+\\.[0-9]+).*', '\\1', '')    AS mod,
-    source_file                                                           AS file,
-    page_number::text                                                     AS ts,
-    LEFT(COALESCE(clean_markdown, chunk_text), 200)                      AS snip,
-    1 - (embedding <=> CAST(:query_vec AS vector))                       AS score,
-    COALESCE(clean_markdown, chunk_text)                                  AS text
-FROM rag_chunks_ben0602
-ORDER BY embedding <=> CAST(:query_vec AS vector)
+    c.id::text                                                              AS id,
+    COALESCE(d.mod, '')                                                     AS mod,
+    d.filename                                                              AS file,
+    COALESCE(c.metadata->>'timestamp_start', c.page_number::text, NULL)    AS ts,
+    LEFT(c.text, 200)                                                       AS snip,
+    1 - (e.vector <=> CAST(:query_vec AS vector))                           AS score,
+    c.text                                                                  AS text,
+    c.source_type                                                           AS source_type,
+    c.lesson_title                                                          AS lesson_title,
+    c.topic                                                                 AS topic
+FROM embeddings e
+JOIN chunks   c ON c.id  = e.chunk_id
+JOIN documents d ON d.id = c.document_id
+ORDER BY e.vector <=> CAST(:query_vec AS vector)
 LIMIT :top_k
 """)
 
@@ -36,11 +41,11 @@ async def retrieve(
     top_k: int = 5,
 ) -> list[RetrievalResult]:
     """
-    Cosine-similarity retrieval over rag_chunks_ben0602.
+    Cosine-similarity retrieval over the canonical embeddings table.
 
     Args:
         session:   active async SQLAlchemy session
-        query_vec: 768-dim embedding — must match the model used at index time
+        query_vec: 768-dim embedding from gemini-embedding-2 (must match stored vectors)
         top_k:     number of results to return
     """
     # Probe all IVFFlat lists — critical for small corpora; acceptable overhead for large ones.
@@ -59,6 +64,9 @@ async def retrieve(
             snip=row.snip,
             score=float(row.score),
             text=row.text,
+            source_type=row.source_type,
+            lesson_title=row.lesson_title,
+            topic=row.topic,
         )
         for row in rows
     ]
