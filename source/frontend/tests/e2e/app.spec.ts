@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 
 async function enterApp(page: import("@playwright/test").Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Alice" }).click();
+  await page.getByRole("button", { name: "Neo" }).click();
   await expect(page.locator("header")).toBeVisible();
 }
 
@@ -22,14 +22,14 @@ test.describe("Profile picker", () => {
 
   test("lists the three demo profiles", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Alice" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Ben" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "You" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Neo" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Morpheus" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Trinity" })).toBeVisible();
   });
 
   test("can select an existing profile and enter the app", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Alice" }).click();
+    await page.getByRole("button", { name: "Neo" }).click();
     await expect(page.getByText("SELECT PROFILE")).not.toBeVisible();
     await expect(page.locator("header")).toBeVisible();
   });
@@ -90,7 +90,11 @@ test.describe("Header", () => {
     await expect(page.getByText("LLM BACKEND")).toBeVisible();
   });
 
-  test("default theme is matrix (data-theme attribute)", async ({ page }) => {
+  test("honours saved theme preference (data-theme attribute)", async ({ page }) => {
+    // The *default* theme is time-of-day based (clinical 07:00–19:00 local, else matrix),
+    // so asserting a fixed default is clock-flaky. Seed a saved preference and assert it
+    // is honoured — that is the behaviour we actually care about.
+    await page.addInitScript(() => localStorage.setItem("gc-theme", "matrix"));
     await enterApp(page);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "matrix");
   });

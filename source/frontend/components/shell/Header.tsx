@@ -12,12 +12,13 @@ interface HeaderProps {
   difficulty: Difficulty;
   onDifficulty: (d: Difficulty) => void;
   onSettings: () => void;
+  onHome?: () => void;
   ragPipeActive?: boolean;
   onRagPipe?: () => void;
   hasActiveTopic?: boolean;
 }
 
-export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, ragPipeActive, onRagPipe, hasActiveTopic }: HeaderProps) {
+export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, onHome, ragPipeActive, onRagPipe, hasActiveTopic }: HeaderProps) {
   const [theme, setThemeState] = useState<Theme>("matrix");
 
   useEffect(() => {
@@ -45,8 +46,23 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
         zIndex: 10,
       }}
     >
-      {/* Brand — avatar + wordmark */}
-      <div className="flex items-center" style={{ gap: 11 }}>
+      {/* Brand — avatar + wordmark — click to home */}
+      <button
+        onClick={onHome}
+        aria-label="Back to home"
+        className="flex items-center"
+        style={{
+          gap: 11,
+          background: "transparent",
+          border: "none",
+          cursor: onHome ? "pointer" : "default",
+          padding: 0,
+          borderRadius: 8,
+          outline: "none",
+        }}
+        onMouseEnter={(e) => { if (onHome) (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+      >
         {/* Neo face logo — theme-invariant, matches browser favicon */}
         <svg
           aria-hidden
@@ -78,13 +94,13 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
             className="wordmark-germ"
             style={{ fontWeight: 700, letterSpacing: "0.4px", fontSize: 14, lineHeight: 1.1, color: "var(--txt)" }}
           >
-            germ<span style={{ color: "var(--txt-faint)" }}>//</span>clone
+            germ<span style={{ color: "var(--txt-faint)" }}>{"//"}</span>clone
           </div>
           <div style={{ fontSize: 10, color: "var(--txt-faint)", letterSpacing: "0.3px" }}>
             module 3 tutor · ML 3.1–3.10
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />

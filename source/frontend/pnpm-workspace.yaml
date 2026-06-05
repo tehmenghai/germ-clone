@@ -1,3 +1,9 @@
+packages:
+  - .
+
+# Build scripts permitted to run during install (pnpm 9+ moved this here from
+# package.json's pnpm.onlyBuiltDependencies). Without the `packages:` field above,
+# pnpm 9 rejects this file with "packages field missing or empty" and CI install fails.
 allowBuilds:
   esbuild: true
   unrs-resolver: true

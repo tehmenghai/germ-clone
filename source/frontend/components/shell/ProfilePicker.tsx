@@ -12,9 +12,9 @@ interface ProfilePickerProps {
 }
 
 const DEMO_PROFILES: Profile[] = [
-  { id: "1", name: "Alice" },
-  { id: "2", name: "Ben" },
-  { id: "3", name: "You" },
+  { id: "1", name: "Neo" },
+  { id: "2", name: "Morpheus" },
+  { id: "3", name: "Trinity" },
 ];
 
 export function ProfilePicker({ onSelect }: ProfilePickerProps) {

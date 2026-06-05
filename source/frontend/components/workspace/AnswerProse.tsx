@@ -9,8 +9,19 @@ interface AnswerProseProps {
   onCiteHover?: (id: number | null) => void;
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function renderMarkdown(md: string, citationIds: number[]): string {
-  let html = md
+  // Escape first — answer text is LLM- and corpus-derived (untrusted). Without this,
+  // any raw <tag> in the model output or a retrieved chunk would inject into the DOM
+  // (e.g. <img src=x onerror=…>). All markdown substitutions below run on escaped text;
+  // the tags we emit are our own literals, so they survive.
+  let html = escapeHtml(md)
     .replace(/^## (.+)$/gm, '<h2 class="answer-h2">$1</h2>')
     .replace(/^### (.+)$/gm, '<h3 class="answer-h3">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")

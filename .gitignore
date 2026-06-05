@@ -62,3 +62,7 @@ Thumbs.db
 *.swp
 *.swo
 .germ-clone.pid
+
+# Playwright run artefacts (regenerable)
+source/frontend/test-results/
+source/frontend/tests/e2e/reports/

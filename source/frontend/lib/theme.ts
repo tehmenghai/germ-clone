@@ -2,9 +2,15 @@ export type Theme = "matrix" | "clinical";
 
 const KEY = "gc-theme";
 
+function localTimeDefault(): Theme {
+  const hour = new Date().getHours();
+  return hour >= 7 && hour < 19 ? "clinical" : "matrix";
+}
+
 export function getTheme(): Theme {
   if (typeof window === "undefined") return "matrix";
-  return (localStorage.getItem(KEY) as Theme) ?? "matrix";
+  const saved = localStorage.getItem(KEY) as Theme | null;
+  return saved === "matrix" || saved === "clinical" ? saved : localTimeDefault();
 }
 
 export function setTheme(theme: Theme) {
