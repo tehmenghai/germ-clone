@@ -5,7 +5,7 @@ Returns: answer_md, citations, sources, stage_events.
 """
 import re
 
-from llm.dispatch import complete
+from llm.dispatch import astream_complete
 from rag.state import GraphState
 from schemas.events import Citation, Source, StageEvent
 
@@ -51,15 +51,24 @@ async def compose_node(state: GraphState) -> dict:
         f"REASONING:\n{state['react_output'][:800]}\n\n"
         f"CHUNKS:\n{chunks_text}"
     )
-    answer_md = await complete(
+
+    token_queue = state.get("token_queue")
+
+    # Stream tokens — each arrives immediately instead of buffering the full response
+    full_response = ""
+    async for token in astream_complete(
         [
             {"role": "system", "content": _SYSTEM_TMPL.format(tone=tone)},
             {"role": "user", "content": user_msg},
         ]
-    )
-    answer_md = answer_md.strip()
+    ):
+        full_response += token
+        if token_queue is not None:
+            await token_queue.put(("token", token))
 
-    # build citations from [N] references found in the answer
+    answer_md = full_response.strip()
+
+    # Build citations from [N] references found in the answer
     cited_ns = sorted({int(n) for n in re.findall(r"\[(\d+)\]", answer_md)})
     citations: list[Citation] = []
     sources: list[Source] = []

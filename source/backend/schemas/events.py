@@ -3,7 +3,8 @@ SSE stage event contract — owned jointly; consumer is the frontend.
 DO NOT change field names or stage keys without a heads-up to Lik Hong.
 See docs/contracts.md.
 """
-from typing import Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel
 
 PIPE_STAGES = [
@@ -35,10 +36,10 @@ class Citation(BaseModel):
     id: int
     mod: str       # e.g. "3.3"
     file: str
-    ts: Optional[str] = None   # timestamp or page ref
+    ts: str | None = None   # timestamp or page ref
     snip: str      # short excerpt ≤200 chars
     score: float
-    text: Optional[str] = None  # full chunk text; FE can display on citation click
+    text: str | None = None  # full chunk text; FE can display on citation click
 
 
 class Source(BaseModel):
@@ -50,10 +51,11 @@ class StageEvent(BaseModel):
     """Emitted by the backend for every pipeline stage transition."""
     stage: StageKey
     status: StageStatus
-    detail: Optional[str] = None
-    scores: Optional[EvalScores] = None
-    verdict: Optional[str] = None
+    detail: str | None = None
+    scores: EvalScores | None = None
+    verdict: str | None = None
     # compose-only fields
-    answer_md: Optional[str] = None
-    citations: Optional[list[Citation]] = None
-    sources: Optional[list[Source]] = None
+    answer_md: str | None = None
+    citations: list[Citation] | None = None
+    sources: list[Source] | None = None
+    token: str | None = None  # streaming token during compose (status="active")
