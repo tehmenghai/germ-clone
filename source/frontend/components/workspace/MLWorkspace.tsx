@@ -121,7 +121,7 @@ export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
       {/* Body */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {!topicId ? (
-          <EmptyState />
+          <EmptyState hasQuery={!!query} />
         ) : wsTab === "visualize" ? (
           <div style={{ padding: "18px 20px" }}>
             <div
@@ -199,7 +199,7 @@ export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ hasQuery }: { hasQuery: boolean }) {
   return (
     <div
       style={{
@@ -227,12 +227,28 @@ function EmptyState() {
       >
         ∂
       </span>
-      <p style={{ fontSize: 13.5, color: "var(--txt-dim)", fontWeight: 500 }}>
-        The <strong style={{ color: "var(--txt)" }}>ML workspace</strong> lands here.
-      </p>
-      <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "22ch", lineHeight: 1.5 }}>
-        Every answer comes with an interactive plot and the math — ask a question to light it up.
-      </p>
+      {hasQuery ? (
+        <>
+          {/* A question is active but no interactive topic matched — explain why the
+              panel is blank so it doesn't read as broken (see issue #12). */}
+          <p style={{ fontSize: 13.5, color: "var(--txt-dim)", fontWeight: 500 }}>
+            No interactive visual for this topic <strong style={{ color: "var(--txt)" }}>yet</strong>.
+          </p>
+          <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "26ch", lineHeight: 1.5 }}>
+            The grounded answer is on the left. Live visuals currently cover bias–variance,
+            regularization, KNN and gradient descent.
+          </p>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: 13.5, color: "var(--txt-dim)", fontWeight: 500 }}>
+            The <strong style={{ color: "var(--txt)" }}>ML workspace</strong> lands here.
+          </p>
+          <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "22ch", lineHeight: 1.5 }}>
+            Every answer comes with an interactive plot and the math — ask a question to light it up.
+          </p>
+        </>
+      )}
     </div>
   );
 }

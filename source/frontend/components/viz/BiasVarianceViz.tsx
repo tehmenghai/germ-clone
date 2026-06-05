@@ -126,20 +126,41 @@ export function BiasVarianceViz({ interactive = true }: Props) {
         <path d={variancePath} fill="none" stroke="var(--amber)" strokeWidth={2} />
         <path d={totalPath} fill="none" stroke="var(--green)" strokeWidth={2.5} strokeDasharray="6 3" />
 
-        {/* Sweet-spot marker */}
+        {/* Sweet-spot marker — flip the label to the left of the dot when it sits
+            near the right edge so it never clips off the SVG viewport. */}
         <line x1={sweetPx} y1={PAD.top} x2={sweetPx} y2={H - PAD.bottom}
           stroke="var(--green)" strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
         <circle cx={sweetPx} cy={sweetPy} r={5} fill="var(--green)" />
-        <text x={sweetPx + 7} y={sweetPy - 6} fontSize={9} fill="var(--green)">sweet spot</text>
+        {(() => {
+          const flip = sweetPx > W - PAD.right - 64;
+          return (
+            <text
+              x={flip ? sweetPx - 9 : sweetPx + 9}
+              y={sweetPy - 6}
+              textAnchor={flip ? "end" : "start"}
+              fontSize={11}
+              fill="var(--green)"
+            >
+              sweet spot
+            </text>
+          );
+        })()}
 
-        {/* Legend */}
-        <g transform={`translate(${PAD.left + 10}, ${PAD.top + 6})`}>
+        {/* Legend — anchored bottom-left inside the plot (variance curve is low there,
+            so it stays clear of all three curves) with a backing rect for contrast.
+            Previously sat top-left and overlapped the bias/total-error curves. */}
+        <g transform={`translate(${PAD.left + 8}, ${H - PAD.bottom - 64})`}>
+          <rect
+            x={-6} y={-14} width={104} height={62} rx={6}
+            fill="color-mix(in oklab, var(--bg) 78%, transparent)"
+            stroke="var(--line-soft)" strokeWidth={0.8}
+          />
           <line x1={0} y1={0} x2={18} y2={0} stroke="var(--cyan)" strokeWidth={2} />
-          <text x={22} y={4} fontSize={9} fill="var(--txt-dim)">Bias²</text>
-          <line x1={0} y1={14} x2={18} y2={14} stroke="var(--amber)" strokeWidth={2} />
-          <text x={22} y={18} fontSize={9} fill="var(--txt-dim)">Variance</text>
-          <line x1={0} y1={28} x2={18} y2={28} stroke="var(--green)" strokeWidth={2.5} strokeDasharray="6 3" />
-          <text x={22} y={32} fontSize={9} fill="var(--txt-dim)">Total Error</text>
+          <text x={22} y={4} fontSize={11} fill="var(--txt-dim)">Bias²</text>
+          <line x1={0} y1={18} x2={18} y2={18} stroke="var(--amber)" strokeWidth={2} />
+          <text x={22} y={22} fontSize={11} fill="var(--txt-dim)">Variance</text>
+          <line x1={0} y1={36} x2={18} y2={36} stroke="var(--green)" strokeWidth={2.5} strokeDasharray="6 3" />
+          <text x={22} y={40} fontSize={11} fill="var(--txt-dim)">Total Error</text>
         </g>
       </svg>
 
