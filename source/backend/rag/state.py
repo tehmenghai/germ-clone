@@ -1,5 +1,6 @@
 import operator
-from typing import Annotated, Optional
+from typing import Annotated, Any
+
 from typing_extensions import TypedDict
 
 from schemas.events import Citation, EvalScores, Source, StageEvent
@@ -19,11 +20,14 @@ class GraphState(TypedDict):
     extra_chunks: list[RetrievalResult]  # retrieve2 additions only
     react_output: str                    # react
     reflect_output: str                  # reflect
-    scores_1: Optional[EvalScores]       # evaluate1
-    scores_2: Optional[EvalScores]       # evaluate2
+    scores_1: EvalScores | None       # evaluate1
+    scores_2: EvalScores | None       # evaluate2
     answer_md: str                       # compose
     citations: list[Citation]            # compose
     sources: list[Source]                # compose
 
     # ── SSE events (each node appends; operator.add accumulates across nodes) ──
     stage_events: Annotated[list[StageEvent], operator.add]
+
+    # ── token streaming channel (injected by ask.py; None in tests) ──────────
+    token_queue: Any   # asyncio.Queue[tuple[str, Any]] | None

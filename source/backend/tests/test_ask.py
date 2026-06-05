@@ -61,3 +61,26 @@ async def test_ask_bias_has_no_reloop():
     stages = [e["stage"] for e in events]
     assert "retrieve2" not in stages
     assert "evaluate2" not in stages
+
+
+async def test_compose_emits_token_events():
+    """Token events must appear before the compose done event."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with client.stream(
+            "GET", "/ask",
+            params={"q": "what is gradient descent", "profile_id": "p1", "difficulty": "standard"},
+        ) as resp:
+            body = await resp.aread()
+
+    events = _parse_sse(body.decode())
+    token_events = [e for e in events if e.get("stage") == "compose" and e.get("status") == "active"]
+    done_event   = next((e for e in events if e.get("stage") == "compose" and e.get("status") == "done"), None)
+
+    assert done_event is not None, "compose done event missing"
+    assert len(token_events) > 0, "no token events received — streaming not working"
+    assert "token" in token_events[0], "token field missing from token event"
+
+    # done event must come after all token events
+    done_idx  = events.index(done_event)
+    token_idxs = [events.index(e) for e in token_events]
+    assert all(i < done_idx for i in token_idxs), "done event arrived before some token events"
