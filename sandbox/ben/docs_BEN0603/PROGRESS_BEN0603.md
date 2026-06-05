@@ -43,8 +43,8 @@ Reference plan: `GRAND_PLAN_BEN0603.md`
 
 | Step | Description | Status |
 |---|---|---|
-| A.git.1 | Branch and commit all Track A changes (002 + 003) | [ ] |
-| A.git.2 | Checkout main, pull remote | [ ] |
+| A.git.1 | Branch and commit all Track A changes (002 + 003) | [x] |
+| A.git.2 | Checkout main, pull remote | [x] |
 | A.git.3 | Merge branch — resolve `queries.py` conflict (keep canonical) | [ ] |
 | A.git.4 | ruff check + commit merge | [ ] |
 
