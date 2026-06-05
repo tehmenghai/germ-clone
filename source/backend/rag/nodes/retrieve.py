@@ -4,11 +4,25 @@ retrieve1_node: initial retrieval on rewritten_query (top_k=8).
 retrieve2_node: reloop retrieval on reflect_output (top_k=6), merged+deduped with existing chunks.
 """
 from ingestion.embedder import embed_text
+from rag.state import GraphState
 from repository.database import AsyncSessionLocal
 from repository.queries import retrieve
-from rag.state import GraphState
 from schemas.events import StageEvent
 from schemas.retrieval import RetrievalResult
+
+_SOURCE_WEIGHTS: dict[str, float] = {
+    "pdf": 1.2,
+    "textbook": 1.2,
+    "transcript": 0.9,
+}
+
+
+def _apply_source_weights(chunks: list[RetrievalResult]) -> list[RetrievalResult]:
+    weighted = [
+        c.model_copy(update={"score": min(c.score * _SOURCE_WEIGHTS.get(c.source_type, 1.0), 1.0)})
+        for c in chunks
+    ]
+    return sorted(weighted, key=lambda c: c.score, reverse=True)
 
 
 def _mod_summary(chunks: list[RetrievalResult]) -> str:
@@ -19,7 +33,7 @@ def _mod_summary(chunks: list[RetrievalResult]) -> str:
 async def retrieve1_node(state: GraphState) -> dict:
     vec = await embed_text(state["rewritten_query"])
     async with AsyncSessionLocal() as session:
-        chunks = await retrieve(session, vec, top_k=8)
+        chunks = _apply_source_weights(await retrieve(session, vec, top_k=8))
     return {
         "chunks": chunks,
         "stage_events": [StageEvent(
@@ -35,7 +49,7 @@ async def retrieve2_node(state: GraphState) -> dict:
     refined = state.get("reflect_output") or state["rewritten_query"]
     vec = await embed_text(refined)
     async with AsyncSessionLocal() as session:
-        new_chunks = await retrieve(session, vec, top_k=6)
+        new_chunks = _apply_source_weights(await retrieve(session, vec, top_k=6))
 
     seen = {c.id for c in state["chunks"]}
     extra = [c for c in new_chunks if c.id not in seen]
