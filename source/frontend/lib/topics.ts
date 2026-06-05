@@ -12,7 +12,12 @@ export type TopicId =
   | "regularization"
   | "knn"
   | "gradient-descent"
-  | "confusion-matrix";
+  | "confusion-matrix"
+  | "distributions"
+  | "kmeans"
+  | "time-series"
+  | "convolution"
+  | "embeddings";
 
 interface TopicDef {
   id: TopicId;
@@ -48,6 +53,31 @@ const TOPICS: TopicDef[] = [
     id: "gradient-descent",
     keywords: ["gradient", "descent", "sgd", "adam", "learning rate"],
     modules: ["3.7"],
+  },
+  {
+    id: "distributions",
+    keywords: ["distribution", "gaussian", "normal", "probability", "std", "standard deviation", "bell curve"],
+    modules: ["3.1"],
+  },
+  {
+    id: "kmeans",
+    keywords: ["k-means", "kmeans", "k means", "cluster", "centroid", "unsupervised"],
+    modules: ["3.5"],
+  },
+  {
+    id: "time-series",
+    keywords: ["time series", "time-series", "forecast", "seasonality", "trend", "arima"],
+    modules: ["3.6"],
+  },
+  {
+    id: "convolution",
+    keywords: ["convolution", "convolutional", "cnn", "kernel", "filter", "computer vision", "edge detection"],
+    modules: ["3.8"],
+  },
+  {
+    id: "embeddings",
+    keywords: ["embedding", "word vector", "word2vec", "cosine similarity", "nlp", "semantic"],
+    modules: ["3.9", "3.10"],
   },
 ];
 
