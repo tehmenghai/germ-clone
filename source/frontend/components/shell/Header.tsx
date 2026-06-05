@@ -94,7 +94,7 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
             className="wordmark-germ"
             style={{ fontWeight: 700, letterSpacing: "0.4px", fontSize: 14, lineHeight: 1.1, color: "var(--txt)" }}
           >
-            germ<span style={{ color: "var(--txt-faint)" }}>//</span>clone
+            germ<span style={{ color: "var(--txt-faint)" }}>{"//"}</span>clone
           </div>
           <div style={{ fontSize: 10, color: "var(--txt-faint)", letterSpacing: "0.3px" }}>
             module 3 tutor · ML 3.1–3.10
