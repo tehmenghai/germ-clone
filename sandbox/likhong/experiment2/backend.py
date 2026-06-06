@@ -4,8 +4,7 @@
 import json
 import os
 import re
-import sys
-import unicodedata
+import time
 from pathlib import Path
 from typing import Literal
 
@@ -27,7 +26,7 @@ MAX_PAGES = 50
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Experiment2 Chunker", version="0.1.0")
+app = FastAPI(title="Experiment2 Chunker", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,6 +42,7 @@ class Chunk(BaseModel):
     id: str
     type: str
     chapter: str | None
+    chapter_title: str | None
     section: str | None
     page_start: int | None
     page_end: int | None
@@ -56,6 +56,8 @@ class Chunk(BaseModel):
 class ChunkRequest(BaseModel):
     pdf: str
     method: Literal["pdfplumber", "marker"]
+    low_memory: bool = False   # Option B: 3 models + float16, no table/OCR-error models
+    pre_slice: bool = False    # Option C: write first MAX_PAGES pages to /tmp before parsing
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +70,13 @@ SEMANTIC_MARKERS = re.compile(
 )
 PROOF_END = re.compile(r"[□■∎]|^\s*QED\s*$", re.MULTILINE)
 MATH_HEURISTIC = re.compile(r"[∀∃∈∉⊆⊂∪∩→↔¬∧∨≤≥≠≈∞∂∇∑∏∫√αβγδεζηθλμνξπρστφχψω]|\\[a-zA-Z]+\{")
+
+# Chapter heading patterns: "Chapter 3", "3 Introduction", "CHAPTER 3 ..."
+CHAPTER_PATTERNS = [
+    re.compile(r"^chapter\s+(\d+)\b", re.IGNORECASE),
+    re.compile(r"^(\d+)\s{1,4}([A-Z][a-z]{3,})"),   # "3 Introduction"
+    re.compile(r"^part\s+(\d+)\b", re.IGNORECASE),
+]
 
 MARKER_TO_TYPE = {
     "definition": "definition",
@@ -104,20 +113,157 @@ def _chunk_id(chapter: str | None, section: str | None, ctype: str, n: int) -> s
 
 
 # ---------------------------------------------------------------------------
+# Chapter pre-pass (pdfplumber)
+# ---------------------------------------------------------------------------
+
+def _detect_chapters_pdfplumber(pdf_path: Path) -> list[dict]:
+    """
+    Quick pass over the first MAX_PAGES pages to find chapter boundaries.
+    Returns a list of {chapter_num, title, page_start} dicts, ordered by page.
+    """
+    import pdfplumber
+
+    chapters: list[dict] = []
+    seen: set[str] = set()
+
+    with pdfplumber.open(str(pdf_path)) as pdf:
+        pages = pdf.pages[:MAX_PAGES]
+
+        all_sizes: list[float] = []
+        for page in pages:
+            for ch in (page.chars or []):
+                if ch.get("size"):
+                    all_sizes.append(ch["size"])
+        if all_sizes:
+            all_sizes.sort()
+            median_size = all_sizes[len(all_sizes) // 2]
+        else:
+            median_size = 10.0
+        # Chapter headings are typically significantly larger than body text
+        chapter_threshold = median_size * 1.4
+
+        for page in pages:
+            page_num = page.page_number
+            page_height = page.height
+            top_cut = page_height * 0.05
+            bot_cut = page_height * 0.95
+
+            char_map: dict[tuple, float] = {}
+            for ch in (page.chars or []):
+                key = (round(ch["x0"]), round(ch["top"]))
+                char_map[key] = ch.get("size", median_size)
+
+            raw_words = page.extract_words(keep_blank_chars=False, use_text_flow=True) or []
+            words = [w for w in raw_words if top_cut <= w["top"] <= bot_cut]
+            for w in words:
+                key = (round(w["x0"]), round(w["top"]))
+                w["size"] = char_map.get(key, median_size)
+
+            # Group into lines
+            if not words:
+                continue
+            lines: list[dict] = []
+            cur_words = [words[0]]
+            cur_y = words[0]["top"]
+            for w in words[1:]:
+                if abs(w["top"] - cur_y) <= 4:
+                    cur_words.append(w)
+                else:
+                    lines.append({
+                        "text": " ".join(x["text"] for x in cur_words),
+                        "size": max(x.get("size", median_size) for x in cur_words),
+                    })
+                    cur_words = [w]
+                    cur_y = w["top"]
+            lines.append({
+                "text": " ".join(x["text"] for x in cur_words),
+                "size": max(x.get("size", median_size) for x in cur_words),
+            })
+
+            for line in lines:
+                text = line["text"].strip()
+                if not text or len(text) < 3:
+                    continue
+                is_large = line["size"] >= chapter_threshold
+
+                for pat in CHAPTER_PATTERNS:
+                    m = pat.match(text)
+                    if m and is_large:
+                        num = m.group(1)
+                        key = f"ch{num}"
+                        if key not in seen:
+                            seen.add(key)
+                            chapters.append({
+                                "chapter_num": num,
+                                "title": text[:100],
+                                "page_start": page_num,
+                            })
+                        break
+
+    return sorted(chapters, key=lambda c: int(c["chapter_num"]))
+
+
+def _chapter_title_for_page(chapters: list[dict], page: int) -> tuple[str | None, str | None]:
+    """Return (chapter_num, title) for the chapter that owns the given page."""
+    if not chapters:
+        return None, None
+    result_num, result_title = None, None
+    for ch in chapters:
+        if ch["page_start"] <= page:
+            result_num = ch["chapter_num"]
+            result_title = ch["title"]
+        else:
+            break
+    return result_num, result_title
+
+
+# ---------------------------------------------------------------------------
+# Pipeline telemetry collector
+# ---------------------------------------------------------------------------
+
+class PipelineTelemetry:
+    """Collects per-stage counts during a chunking run."""
+
+    def __init__(self):
+        self.stages: list[dict] = []
+        self._t0 = time.perf_counter()
+        self._stage_start = self._t0
+
+    def record(self, stage: str, count: int, detail: str = ""):
+        now = time.perf_counter()
+        self.stages.append({
+            "stage": stage,
+            "count": count,
+            "detail": detail,
+            "elapsed_ms": round((now - self._stage_start) * 1000),
+        })
+        self._stage_start = now
+
+    def total_ms(self) -> int:
+        return round((time.perf_counter() - self._t0) * 1000)
+
+
+# ---------------------------------------------------------------------------
 # Method A: pdfplumber
 # ---------------------------------------------------------------------------
 
-def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
+def _chunk_pdfplumber(pdf_path: Path, telemetry: PipelineTelemetry) -> list[dict]:
     import pdfplumber
 
-    LINE_GAP = 4      # pt — same line if Y delta < this
-    PARA_GAP = 10     # pt — new paragraph if Y gap > this
+    LINE_GAP = 4
+    PARA_GAP = 10
     MAX_TOKENS = 512
-    HEADING_SIZE_RATIO = 1.15  # font size >= median * ratio → heading candidate
+    HEADING_SIZE_RATIO = 1.15
+
+    # Stage 1 — chapter detection
+    chapters = _detect_chapters_pdfplumber(pdf_path)
+    telemetry.record("chapter_detection", len(chapters),
+                     f"{len(chapters)} chapters found in pages 1–{MAX_PAGES}")
 
     chunks: list[dict] = []
     type_counters: dict[str, int] = {}
     current_chapter: str | None = None
+    current_chapter_title: str | None = None
     current_section: str | None = None
     current_type = "other"
     current_texts: list[str] = []
@@ -125,6 +271,9 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
     current_page_end: int | None = None
     current_heading: str | None = None
     in_proof = False
+
+    pages_processed = 0
+    raw_paragraph_count = 0
 
     def flush(force_type: str | None = None):
         nonlocal current_texts, current_page_start, current_page_end, current_heading
@@ -138,6 +287,7 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
             "id": cid,
             "type": ctype,
             "chapter": current_chapter,
+            "chapter_title": current_chapter_title,
             "section": current_section,
             "page_start": current_page_start,
             "page_end": current_page_end,
@@ -153,7 +303,6 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
         current_heading = None
 
     def _words_to_lines(words: list[dict]) -> list[dict]:
-        """Group pdfplumber word dicts into lines by Y proximity."""
         if not words:
             return []
         lines: list[dict] = []
@@ -172,7 +321,6 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
         return lines
 
     def _lines_to_paragraphs(lines: list[dict]) -> list[dict]:
-        """Group lines into paragraphs by vertical gap."""
         if not lines:
             return []
         paras: list[dict] = []
@@ -181,15 +329,15 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
             gap = line["top"] - cur_lines[-1]["top"]
             if gap > PARA_GAP:
                 paras.append({
-                    "text": " ".join(l["text"] for l in cur_lines),
-                    "size": max(l["size"] for l in cur_lines),
+                    "text": " ".join(ln["text"] for ln in cur_lines),
+                    "size": max(ln["size"] for ln in cur_lines),
                 })
                 cur_lines = [line]
             else:
                 cur_lines.append(line)
         paras.append({
-            "text": " ".join(l["text"] for l in cur_lines),
-            "size": max(l["size"] for l in cur_lines),
+            "text": " ".join(ln["text"] for ln in cur_lines),
+            "size": max(ln["size"] for ln in cur_lines),
         })
         return paras
 
@@ -201,7 +349,6 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
     with pdfplumber.open(str(pdf_path)) as pdf:
         pages = pdf.pages[:MAX_PAGES]
 
-        # Collect all char sizes to compute median body size
         all_sizes: list[float] = []
         for page in pages:
             for char in (page.chars or []):
@@ -214,11 +361,19 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
             median_size = 10.0
         heading_threshold = median_size * HEADING_SIZE_RATIO
 
+        # Stage 2 — page extraction
         for page in pages:
+            pages_processed += 1
             page_num = page.page_number
             page_height = page.height
 
-            # Enrich words with char-level font size
+            # Update chapter context from pre-pass
+            ch_num, ch_title = _chapter_title_for_page(chapters, page_num)
+            if ch_num and ch_num != current_chapter:
+                flush()
+                current_chapter = ch_num
+                current_chapter_title = ch_title
+
             char_map: dict[tuple, float] = {}
             for ch in (page.chars or []):
                 key = (round(ch["x0"]), round(ch["top"]))
@@ -227,20 +382,19 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
             raw_words = page.extract_words(keep_blank_chars=False, use_text_flow=True) or []
             words = _strip_header_footer(raw_words, page_height)
 
-            # Attach size to each word from nearest char
             for w in words:
                 key = (round(w["x0"]), round(w["top"]))
                 w["size"] = char_map.get(key, median_size)
 
             lines = _words_to_lines(words)
             paragraphs = _lines_to_paragraphs(lines)
+            raw_paragraph_count += len(paragraphs)
 
             for para in paragraphs:
                 text = para["text"].strip()
                 if not text:
                     continue
 
-                # Heading detection by font size
                 is_heading = para["size"] >= heading_threshold
                 ch_match = re.match(r"^(\d+)\s+[A-Z]", text)
                 sec_match = re.match(r"^(\d+)\.(\d+)\s+[A-Z]", text)
@@ -250,9 +404,12 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
                     if sec_match:
                         current_chapter = sec_match.group(1)
                         current_section = sec_match.group(2)
+                        # Sync chapter title from pre-pass
+                        _, current_chapter_title = _chapter_title_for_page(chapters, page_num)
                     elif ch_match:
                         current_chapter = ch_match.group(1)
                         current_section = None
+                        _, current_chapter_title = _chapter_title_for_page(chapters, page_num)
                     current_type = "section"
                     current_heading = text[:120]
                     current_texts = [text]
@@ -260,7 +417,6 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
                     current_page_end = page_num
                     continue
 
-                # Semantic marker detection
                 marker_match = SEMANTIC_MARKERS.match(text)
                 if marker_match:
                     flush()
@@ -273,7 +429,6 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
                     current_page_end = page_num
                     continue
 
-                # Proof end
                 if in_proof and PROOF_END.search(text):
                     current_texts.append(text)
                     current_page_end = page_num
@@ -282,12 +437,10 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
                     current_type = "other"
                     continue
 
-                # Token ceiling split (non-proof only)
                 if not in_proof and current_texts:
                     body_so_far = "\n\n".join(current_texts) + "\n\n" + text
                     if _word_count(body_so_far) > MAX_TOKENS:
                         flush()
-                        current_type = current_type  # continue same type
                         current_page_start = page_num
 
                 if current_page_start is None:
@@ -296,43 +449,126 @@ def _chunk_pdfplumber(pdf_path: Path) -> list[dict]:
                 current_texts.append(text)
 
     flush()
+
+    telemetry.record("page_extraction", pages_processed,
+                     f"{pages_processed} pages → {raw_paragraph_count} raw paragraphs")
+    telemetry.record("heading_detection",
+                     sum(1 for c in chunks if c["type"] == "section"),
+                     f"font-size ≥ median×{HEADING_SIZE_RATIO} or numbered pattern")
+    telemetry.record("semantic_typing",
+                     sum(1 for c in chunks if c["type"] not in ("section", "other")),
+                     "SEMANTIC_MARKERS regex pass")
+    telemetry.record("token_ceiling_splits",
+                     sum(1 for c in chunks if c["type"] == "other"),
+                     f"MAX_TOKENS={MAX_TOKENS} words; other-typed chunks may be splits")
+    telemetry.record("output", len(chunks),
+                     f"{len(chunks)} chunks across {len(chapters)} chapters")
+
     return chunks
+
+
+# ---------------------------------------------------------------------------
+# Option C helper: pre-slice PDF to /tmp
+# ---------------------------------------------------------------------------
+
+def _slice_pdf(src: Path, n_pages: int = MAX_PAGES) -> Path:
+    """Write the first n_pages of src to /tmp and return the path. Cached by stem+n."""
+    out = Path("/tmp") / f"{src.stem}_p{n_pages}.pdf"
+    if out.exists():
+        return out
+    from pypdf import PdfWriter, PdfReader
+    reader = PdfReader(str(src))
+    writer = PdfWriter()
+    for page in reader.pages[:n_pages]:
+        writer.add_page(page)
+    with open(out, "wb") as f:
+        writer.write(f)
+    return out
 
 
 # ---------------------------------------------------------------------------
 # Method B: marker
 # ---------------------------------------------------------------------------
 
-def _chunk_marker(pdf_path: Path) -> list[dict]:
-    # Avoid GPU unless available
+def _chunk_marker(
+    pdf_path: Path,
+    telemetry: PipelineTelemetry,
+    low_memory: bool = False,
+    pre_slice: bool = False,
+) -> list[dict]:
+    import torch
+
     if "TORCH_DEVICE" not in os.environ:
-        try:
-            import torch
-            if not torch.cuda.is_available():
-                os.environ["TORCH_DEVICE"] = "cpu"
-        except ImportError:
+        if not torch.cuda.is_available():
             os.environ["TORCH_DEVICE"] = "cpu"
 
     from marker.converters.pdf import PdfConverter
     from marker.models import create_model_dict
     from marker.config.parser import ConfigParser
 
-    page_range = ",".join(str(i) for i in range(MAX_PAGES))  # "0,1,2,...,49"
+    target_path = _slice_pdf(pdf_path) if pre_slice else pdf_path
+    # When pre-sliced the file already has MAX_PAGES pages max; still pass
+    # page_range to marker as a belt-and-braces guard.
+    page_range = ",".join(str(i) for i in range(MAX_PAGES))
 
     config = {
         "output_format": "json",
         "page_range": page_range,
+        "disable_multiprocessing": True,
     }
     config_parser = ConfigParser(config)
+
+    if low_memory:
+        # Option B: all 5 models loaded at float16/cpu; TableProcessor and
+        # line OCR-error check excluded via processor_list to avoid invoking
+        # table_rec_model and ocr_error_model (they are still in artifact_dict
+        # but never called — passing None would crash builders/processors).
+        dtype = torch.float16
+        device = "cpu"
+        artifact_dict = create_model_dict(device=device, dtype=dtype)
+        # Exclude table and OCR-error processors so those models are never invoked.
+        # This is the safe way — the models are loaded but dormant.
+        low_mem_processors = [
+            p for p in [
+                "marker.processors.order.OrderProcessor",
+                "marker.processors.block_relabel.BlockRelabelProcessor",
+                "marker.processors.line_merge.LineMergeProcessor",
+                "marker.processors.blockquote.BlockquoteProcessor",
+                "marker.processors.code.CodeProcessor",
+                "marker.processors.document_toc.DocumentTOCProcessor",
+                "marker.processors.equation.EquationProcessor",
+                "marker.processors.footnote.FootnoteProcessor",
+                "marker.processors.ignoretext.IgnoreTextProcessor",
+                "marker.processors.line_numbers.LineNumbersProcessor",
+                "marker.processors.list.ListProcessor",
+                "marker.processors.page_header.PageHeaderProcessor",
+                "marker.processors.sectionheader.SectionHeaderProcessor",
+                # TableProcessor excluded — skips table_rec_model
+                "marker.processors.text.TextProcessor",
+                "marker.processors.reference.ReferenceProcessor",
+                "marker.processors.blank_page.BlankPageProcessor",
+            ]
+        ]
+        telemetry.record("model_load", 5, "low_memory: 5 models at float16/cpu; TableProcessor excluded")
+    else:
+        artifact_dict = create_model_dict()
+        low_mem_processors = None
+        telemetry.record("model_load", 5, "standard: 5 models (float32)")
+
     converter = PdfConverter(
         config=config_parser.generate_config_dict(),
-        artifact_dict=create_model_dict(),
+        artifact_dict=artifact_dict,
+        processor_list=low_mem_processors,
     )
-    rendered = converter(str(pdf_path))
 
-    # rendered is a RenderedDocument; .children is a list of page blocks
+    telemetry.record("model_load", 1, "marker models loaded (layout + OCR + order)")
+    rendered = converter(str(target_path))
+    sliced_note = " (pre-sliced)" if pre_slice else ""
+    telemetry.record("pdf_conversion", MAX_PAGES, f"pages 0–{MAX_PAGES - 1} converted to JSON blocks{sliced_note}")
+
     chunks: list[dict] = []
     type_counters: dict[str, int] = {}
+    block_count = 0
 
     def _marker_block_type(block_type: str) -> str:
         mapping = {
@@ -347,10 +583,8 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
         return mapping.get(block_type, "other")
 
     def _extract_text(block) -> str:
-        """Recursively extract plain text from a marker block."""
         parts: list[str] = []
         if hasattr(block, "html") and block.html:
-            # Strip HTML tags
             text = re.sub(r"<[^>]+>", " ", block.html)
             text = re.sub(r"\s+", " ", text).strip()
             parts.append(text)
@@ -362,25 +596,25 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
         return "\n".join(parts)
 
     current_chapter: str | None = None
+    current_chapter_title: str | None = None
     current_section: str | None = None
 
-    # marker JSON: rendered.children = list of PageGroup; each has .children = blocks
     pages = rendered.children if hasattr(rendered, "children") else []
     for page_group in pages:
         page_num = getattr(page_group, "page", None)
         if page_num is None and hasattr(page_group, "metadata"):
             page_num = getattr(page_group.metadata, "page_number", None)
-        page_num = (page_num or 0) + 1  # marker is 0-indexed
+        page_num = (page_num or 0) + 1
 
         blocks = page_group.children if hasattr(page_group, "children") else []
         for block in blocks:
+            block_count += 1
             raw_type = type(block).__name__
             ctype = _marker_block_type(raw_type)
             text = _extract_text(block)
             if not text:
                 continue
 
-            # Refine type by semantic markers
             marker_match = SEMANTIC_MARKERS.match(text)
             if marker_match:
                 ctype = MARKER_TO_TYPE.get(marker_match.group(1).lower(), ctype)
@@ -389,7 +623,6 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
             if ctype == "section" or raw_type == "SectionHeader":
                 ctype = "section"
                 heading_text = text[:120]
-                # Try to extract chapter/section numbers
                 m = re.match(r"^(\d+)\.(\d+)", text)
                 if m:
                     current_chapter = m.group(1)
@@ -400,6 +633,13 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
                         current_chapter = m2.group(1)
                         current_section = None
 
+                # Try to resolve chapter title from heading text
+                for pat in CHAPTER_PATTERNS:
+                    mc = pat.match(text)
+                    if mc:
+                        current_chapter_title = text[:100]
+                        break
+
             type_counters[ctype] = type_counters.get(ctype, 0) + 1
             cid = _chunk_id(current_chapter, current_section, ctype, type_counters[ctype])
 
@@ -407,6 +647,7 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
                 "id": cid,
                 "type": ctype,
                 "chapter": current_chapter,
+                "chapter_title": current_chapter_title,
                 "section": current_section,
                 "page_start": page_num,
                 "page_end": page_num,
@@ -416,6 +657,10 @@ def _chunk_marker(pdf_path: Path) -> list[dict]:
                 "has_math": _has_math(text),
                 "source_method": "marker",
             })
+
+    telemetry.record("block_classification", block_count,
+                     f"{block_count} blocks typed via marker block_type + SEMANTIC_MARKERS")
+    telemetry.record("output", len(chunks), f"{len(chunks)} chunks emitted")
 
     return chunks
 
@@ -434,44 +679,77 @@ def list_pdfs() -> list[str]:
     )
 
 
+def _cache_suffix(method: str, low_memory: bool, pre_slice: bool) -> str:
+    """Build a unique cache filename suffix encoding method + options."""
+    parts = [method]
+    if low_memory:
+        parts.append("lowmem")
+    if pre_slice:
+        parts.append("sliced")
+    return "__".join(parts)
+
+
 @app.post("/chunk")
 def chunk_pdf(req: ChunkRequest) -> dict:
     pdf_path = CORPUS_DIR / req.pdf
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail=f"PDF not found: {req.pdf}")
 
-    cache_path = OUTPUT_DIR / f"{pdf_path.stem}__{req.method}.json"
+    suffix = _cache_suffix(req.method, req.low_memory, req.pre_slice)
+    cache_path = OUTPUT_DIR / f"{pdf_path.stem}__{suffix}.json"
     if cache_path.exists():
         with open(cache_path) as f:
-            chunks = json.load(f)
-        return {"chunks": chunks, "cached": True, "count": len(chunks)}
+            data = json.load(f)
+        if isinstance(data, list):
+            chunks = data
+            pipeline = []
+        else:
+            chunks = data.get("chunks", [])
+            pipeline = data.get("pipeline", [])
+        return {"chunks": chunks, "pipeline": pipeline, "cached": True, "count": len(chunks)}
+
+    telemetry = PipelineTelemetry()
 
     if req.method == "pdfplumber":
-        chunks = _chunk_pdfplumber(pdf_path)
+        chunks = _chunk_pdfplumber(pdf_path, telemetry)
     elif req.method == "marker":
-        chunks = _chunk_marker(pdf_path)
+        chunks = _chunk_marker(pdf_path, telemetry, low_memory=req.low_memory, pre_slice=req.pre_slice)
     else:
         raise HTTPException(status_code=400, detail="Unknown method")
 
+    pipeline = telemetry.stages
+
     with open(cache_path, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, ensure_ascii=False, indent=2)
+        json.dump({"chunks": chunks, "pipeline": pipeline}, f, ensure_ascii=False, indent=2)
 
-    return {"chunks": chunks, "cached": False, "count": len(chunks)}
+    return {
+        "chunks": chunks,
+        "pipeline": pipeline,
+        "cached": False,
+        "count": len(chunks),
+        "total_ms": telemetry.total_ms(),
+    }
 
 
-@app.get("/chunk/{pdf_stem}/{method}")
-def get_cached(pdf_stem: str, method: str) -> dict:
-    cache_path = OUTPUT_DIR / f"{pdf_stem}__{method}.json"
+@app.get("/chunk/{pdf_stem}/{suffix}")
+def get_cached(pdf_stem: str, suffix: str) -> dict:
+    cache_path = OUTPUT_DIR / f"{pdf_stem}__{suffix}.json"
     if not cache_path.exists():
         raise HTTPException(status_code=404, detail="No cached result. POST /chunk first.")
     with open(cache_path) as f:
-        chunks = json.load(f)
-    return {"chunks": chunks, "cached": True, "count": len(chunks)}
+        data = json.load(f)
+    if isinstance(data, list):
+        chunks = data
+        pipeline = []
+    else:
+        chunks = data.get("chunks", [])
+        pipeline = data.get("pipeline", [])
+    return {"chunks": chunks, "pipeline": pipeline, "cached": True, "count": len(chunks)}
 
 
-@app.delete("/chunk/{pdf_stem}/{method}")
-def clear_cache(pdf_stem: str, method: str) -> dict:
-    cache_path = OUTPUT_DIR / f"{pdf_stem}__{method}.json"
+@app.delete("/chunk/{pdf_stem}/{suffix}")
+def clear_cache(pdf_stem: str, suffix: str) -> dict:
+    cache_path = OUTPUT_DIR / f"{pdf_stem}__{suffix}.json"
     if cache_path.exists():
         cache_path.unlink()
         return {"cleared": True}
@@ -483,10 +761,9 @@ def clear_cache(pdf_stem: str, method: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _kill_existing(port: int = 8099) -> None:
-    """Kill any process already bound to our port and wait for the socket to release."""
     import signal
     import subprocess
-    import time
+    import time as _time
 
     killed: list[int] = []
     try:
@@ -495,7 +772,6 @@ def _kill_existing(port: int = 8099) -> None:
             capture_output=True, text=True, check=False,
         )
         for line in result.stdout.splitlines():
-            # ss output: ... users:(("python",pid=12345,...),("python",pid=67890,...))
             for m in re.finditer(r'pid=(\d+)', line):
                 pid = int(m.group(1))
                 try:
@@ -505,17 +781,14 @@ def _kill_existing(port: int = 8099) -> None:
                 except ProcessLookupError:
                     pass
     except FileNotFoundError:
-        # ss not available — fall back to fuser
         try:
-            subprocess.run(["fuser", "-k", f"{port}/tcp"], check=False,
-                           capture_output=True)
+            subprocess.run(["fuser", "-k", f"{port}/tcp"], check=False, capture_output=True)
             print(f"[startup] fuser killed processes on port {port}", flush=True)
-            killed.append(-1)  # sentinel so we still wait
+            killed.append(-1)
         except FileNotFoundError:
             print(f"[startup] warning: neither ss nor fuser found; skipping port {port} cleanup", flush=True)
 
     if killed:
-        # Wait up to 3 s for the socket to fully release
         for _ in range(30):
             result = subprocess.run(
                 ["ss", "-tlnp", f"sport = :{port}"],
@@ -523,7 +796,7 @@ def _kill_existing(port: int = 8099) -> None:
             )
             if f":{port}" not in result.stdout:
                 break
-            time.sleep(0.1)
+            _time.sleep(0.1)
 
 
 if __name__ == "__main__":

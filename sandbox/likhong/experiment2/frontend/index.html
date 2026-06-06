@@ -114,8 +114,37 @@
     }
     .method-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
 
-    .marker-warning {
+    .marker-options {
       display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .marker-options.visible { display: flex; }
+
+    .opt-toggle {
+      display: flex;
+      gap: 6px;
+    }
+    .opt-chip {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .opt-chip.on {
+      border-color: var(--accent2);
+      background: rgba(167,139,250,0.15);
+      color: var(--accent2);
+    }
+    .opt-chip:hover:not(.on) { border-color: var(--accent2); color: var(--text); }
+
+    .marker-warning {
       font-size: 11px;
       color: var(--warning);
       background: rgba(251,191,36,0.08);
@@ -124,7 +153,6 @@
       padding: 8px 10px;
       line-height: 1.5;
     }
-    .marker-warning.visible { display: block; }
 
     .run-btn {
       background: var(--accent);
@@ -194,8 +222,55 @@
 
     input[type="text"]#search-box { margin-top: 0; }
 
+    /* ---- Chapter filter ---- */
+    .chapter-filter { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chapter-chip {
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--accent);
+      background: rgba(108,140,255,0.12);
+      color: var(--accent);
+      opacity: 0.45;
+      transition: opacity 0.15s;
+    }
+    .chapter-chip.on { opacity: 1; }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    .view-tab {
+      padding: 10px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-tab:hover:not(.active) { color: var(--text); }
+
     /* ---- Main area ---- */
     main {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view-panel {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
@@ -203,6 +278,7 @@
       flex-direction: column;
       gap: 0;
     }
+    .view-panel.hidden { display: none; }
 
     .summary-bar {
       display: flex;
@@ -251,6 +327,17 @@
     .chunk-id { font-size: 11px; font-family: monospace; color: var(--muted); }
     .chunk-heading { font-size: 12px; color: var(--text); font-weight: 500; flex: 1; }
     .chunk-meta { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+    .chunk-chapter-label {
+      font-size: 10px;
+      color: var(--accent);
+      background: rgba(108,140,255,0.1);
+      border-radius: 4px;
+      padding: 2px 6px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     .badge {
       padding: 2px 8px;
@@ -345,6 +432,143 @@
       text-align: center;
     }
     .empty-state .icon { font-size: 40px; opacity: 0.3; }
+
+    /* ---- Pipeline view ---- */
+    .pipeline-view {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding-bottom: 20px;
+    }
+
+    .pipeline-header {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .pipeline-header strong { color: var(--text); }
+
+    .pipeline-lane {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 12px;
+    }
+
+    .lane-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 32px;
+      flex-shrink: 0;
+    }
+    .lane-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      margin-top: 16px;
+      box-shadow: 0 0 8px rgba(108,140,255,0.5);
+      transition: transform 0.3s ease;
+    }
+    .lane-dot.animate { transform: scale(1.4); }
+    .lane-line {
+      width: 2px;
+      flex: 1;
+      background: linear-gradient(var(--accent), var(--border));
+      margin-top: 2px;
+      min-height: 12px;
+    }
+    .pipeline-lane:last-child .lane-line { display: none; }
+
+    .lane-card {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      transition: border-color 0.3s;
+    }
+    .lane-card.animate { border-color: var(--accent); }
+
+    .lane-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .lane-stage-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .lane-count {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s;
+      min-width: 48px;
+    }
+    .lane-count.zero { color: var(--muted); }
+    .lane-elapsed {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .lane-detail {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .lane-bar-wrap {
+      margin-top: 10px;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .lane-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* Stage colour variants */
+    .lane-card[data-stage="chapter_detection"] .lane-count { color: #f472b6; }
+    .lane-card[data-stage="chapter_detection"] .lane-dot-color { background: #f472b6; }
+    .lane-card[data-stage="chapter_detection"] .lane-bar { background: #f472b6; }
+    .lane-card[data-stage="chapter_detection"] .lane-dot { background: #f472b6; box-shadow: 0 0 8px rgba(244,114,182,0.5); }
+
+    .lane-card[data-stage="page_extraction"] .lane-count { color: #fbbf24; }
+    .lane-card[data-stage="page_extraction"] .lane-bar { background: #fbbf24; }
+
+    .lane-card[data-stage="heading_detection"] .lane-count { color: #34d399; }
+    .lane-card[data-stage="heading_detection"] .lane-bar { background: #34d399; }
+
+    .lane-card[data-stage="semantic_typing"] .lane-count { color: var(--accent2); }
+    .lane-card[data-stage="semantic_typing"] .lane-bar { background: var(--accent2); }
+
+    .lane-card[data-stage="output"] .lane-count { color: var(--success); }
+    .lane-card[data-stage="output"] .lane-bar { background: var(--success); }
+
+    .pipeline-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    /* Stage name display names */
+    .stage-label-map {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -352,7 +576,7 @@
 <header>
   <div>
     <h1>Experiment2 — Chunk Viewer</h1>
-    <div class="subtitle">PDF chunking comparison: pdfplumber vs marker</div>
+    <div class="subtitle">PDF chunking comparison: pdfplumber vs marker · chapter-aware preprocessing</div>
   </div>
 </header>
 
@@ -370,8 +594,12 @@
         <div class="method-btn active" data-method="pdfplumber">pdfplumber</div>
         <div class="method-btn" data-method="marker">marker</div>
       </div>
-      <div class="marker-warning" id="marker-warning">
-        ⚠️ First run downloads ~1–2 GB of ML models and may take 1–3 minutes on CPU. Subsequent runs use the cache.
+      <div class="marker-options" id="marker-options">
+        <div class="opt-toggle">
+          <div class="opt-chip" id="opt-lowmem" title="Load all models at float16/cpu and skip TableProcessor — saves ~2–3 GB RAM. Tables won't be extracted.">B: low memory</div>
+          <div class="opt-chip" id="opt-preslice" title="Write first 50 pages to /tmp before parsing — guarantees marker never walks past page 50 regardless of version quirks.">C: pre-slice</div>
+        </div>
+        <div class="marker-warning" id="marker-warning"></div>
       </div>
     </div>
 
@@ -380,6 +608,13 @@
     <div class="status-bar" id="status"></div>
 
     <div class="divider"></div>
+
+    <div class="field-group">
+      <label>Filter by chapter</label>
+      <div class="chapter-filter" id="chapter-filter">
+        <span style="font-size:11px;color:var(--muted)">Run chunking to see chapters</span>
+      </div>
+    </div>
 
     <div class="field-group">
       <label>Filter by type</label>
@@ -403,15 +638,30 @@
 
   <!-- Main -->
   <main id="main">
-    <div class="summary-bar" id="summary-bar" style="display:none">
-      <div class="spinner" id="spinner"></div>
-      <span id="summary-text"></span>
+    <div class="view-tabs" id="view-tabs">
+      <div class="view-tab active" data-view="chunks">Chunks</div>
+      <div class="view-tab" data-view="pipeline">Pipeline</div>
     </div>
-    <div class="chunks-list" id="chunks-list"></div>
-    <div class="pagination" id="pagination" style="display:none"></div>
-    <div class="empty-state" id="empty-state">
-      <div class="icon">📄</div>
-      <div>Select a PDF and click <strong>Chunk</strong> to begin.</div>
+
+    <!-- Chunks panel -->
+    <div class="view-panel" id="panel-chunks">
+      <div class="summary-bar" id="summary-bar" style="display:none">
+        <div class="spinner" id="spinner"></div>
+        <span id="summary-text"></span>
+      </div>
+      <div class="chunks-list" id="chunks-list"></div>
+      <div class="pagination" id="pagination" style="display:none"></div>
+      <div class="empty-state" id="empty-state">
+        <div class="icon">📄</div>
+        <div>Select a PDF and click <strong>Chunk</strong> to begin.</div>
+      </div>
+    </div>
+
+    <!-- Pipeline panel -->
+    <div class="view-panel hidden" id="panel-pipeline">
+      <div class="pipeline-view" id="pipeline-view">
+        <div class="pipeline-empty">Run chunking to see the pipeline.</div>
+      </div>
     </div>
   </main>
 </div>
@@ -419,6 +669,18 @@
 <script>
 const API = 'http://localhost:8099';
 const PAGE_SIZE = 25;
+
+const STAGE_LABELS = {
+  chapter_detection:     'Chapter Detection',
+  page_extraction:       'Page Extraction',
+  model_load:            'Model Load',
+  pdf_conversion:        'PDF Conversion',
+  heading_detection:     'Heading Detection',
+  semantic_typing:       'Semantic Typing',
+  token_ceiling_splits:  'Token Ceiling Splits',
+  block_classification:  'Block Classification',
+  output:                'Output',
+};
 
 const TYPE_COLORS = {
   theorem:    'var(--type-theorem)',
@@ -436,8 +698,28 @@ const TYPE_COLORS = {
 let allChunks = [];
 let filteredChunks = [];
 let activeTypes = new Set();
+let activeChapters = new Set();
+let allChapterNums = new Set();
 let currentPage = 0;
 let selectedMethod = 'pdfplumber';
+let optLowMemory = false;
+let optPreSlice = false;
+let currentView = 'chunks';
+let pipelineData = [];
+
+// --- View tab switching ---
+document.querySelectorAll('.view-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentView = tab.dataset.view;
+    document.getElementById('panel-chunks').classList.toggle('hidden', currentView !== 'chunks');
+    document.getElementById('panel-pipeline').classList.toggle('hidden', currentView !== 'pipeline');
+    if (currentView === 'pipeline' && pipelineData.length) {
+      renderPipeline(pipelineData, false);
+    }
+  });
+});
 
 // --- Init ---
 async function init() {
@@ -450,12 +732,36 @@ async function init() {
     }
     sel.innerHTML = '<option value="">— select a PDF —</option>' +
       pdfs.map(p => `<option value="${p}">${p}</option>`).join('');
-    // Auto-load cache for first real PDF
     sel.value = pdfs[0];
-    loadCache(pdfs[0], selectedMethod);
+    loadCache(pdfs[0], cacheSuffix());
   } catch {
     setStatus('Cannot reach backend at ' + API, 'error');
   }
+}
+
+// --- Marker warning text ---
+function updateMarkerWarning() {
+  const el = document.getElementById('marker-warning');
+  if (selectedMethod !== 'marker') { el.textContent = ''; return; }
+  const parts = [];
+  if (!optLowMemory && !optPreSlice) {
+    parts.push('⚠️ First run downloads ~1–2 GB of ML models (5 models, float32) and may take 1–3 min on CPU.');
+  } else {
+    if (optLowMemory) parts.push('B active: float16/cpu + no TableProcessor — saves ~2–3 GB RAM; tables skipped.');
+    if (optPreSlice) parts.push('C active: PDF sliced to /tmp before parsing — enforces 50-page hard cap.');
+    if (!optLowMemory) parts.push('⚠️ Standard model load still ~1–2 GB first run.');
+  }
+  el.textContent = parts.join(' ');
+}
+
+// --- Cache suffix (must mirror backend _cache_suffix) ---
+function cacheSuffix() {
+  const parts = [selectedMethod];
+  if (selectedMethod === 'marker') {
+    if (optLowMemory) parts.push('lowmem');
+    if (optPreSlice)  parts.push('sliced');
+  }
+  return parts.join('__');
 }
 
 // --- Method toggle ---
@@ -464,11 +770,27 @@ document.querySelectorAll('.method-btn').forEach(btn => {
     document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedMethod = btn.dataset.method;
-    document.getElementById('marker-warning').classList.toggle('visible', selectedMethod === 'marker');
-    // Try loading cache for new method
+    document.getElementById('marker-options').classList.toggle('visible', selectedMethod === 'marker');
+    updateMarkerWarning();
     const pdf = document.getElementById('pdf-select').value;
-    if (pdf && allChunks.length) loadCache(pdf, selectedMethod);
+    if (pdf) loadCache(pdf, cacheSuffix());
   });
+});
+
+// --- Marker sub-option chips ---
+document.getElementById('opt-lowmem').addEventListener('click', () => {
+  optLowMemory = !optLowMemory;
+  document.getElementById('opt-lowmem').classList.toggle('on', optLowMemory);
+  updateMarkerWarning();
+  const pdf = document.getElementById('pdf-select').value;
+  if (pdf) loadCache(pdf, cacheSuffix());
+});
+document.getElementById('opt-preslice').addEventListener('click', () => {
+  optPreSlice = !optPreSlice;
+  document.getElementById('opt-preslice').classList.toggle('on', optPreSlice);
+  updateMarkerWarning();
+  const pdf = document.getElementById('pdf-select').value;
+  if (pdf) loadCache(pdf, cacheSuffix());
 });
 
 // --- Run ---
@@ -484,15 +806,23 @@ document.getElementById('run-btn').addEventListener('click', async () => {
     const res = await fetch(`${API}/chunk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pdf, method: selectedMethod }),
+      body: JSON.stringify({
+        pdf,
+        method: selectedMethod,
+        low_memory: optLowMemory,
+        pre_slice: optPreSlice,
+      }),
     });
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || res.statusText);
     }
     const data = await res.json();
-    setStatus(`${data.count} chunks${data.cached ? ' (cached)' : ''}`, 'success');
+    const ms = data.total_ms ? ` in ${data.total_ms}ms` : '';
+    setStatus(`${data.count} chunks${data.cached ? ' (cached)' : ms}`, 'success');
+    pipelineData = data.pipeline || [];
     loadChunks(data.chunks);
+    if (currentView === 'pipeline') renderPipeline(pipelineData, !data.cached);
   } catch (e) {
     setStatus('Error: ' + e.message, 'error');
   } finally {
@@ -507,7 +837,7 @@ document.getElementById('clear-btn').addEventListener('click', async () => {
   if (!pdf) return;
   const stem = pdf.replace(/\.pdf$/i, '');
   try {
-    await fetch(`${API}/chunk/${encodeURIComponent(stem)}/${selectedMethod}`, { method: 'DELETE' });
+    await fetch(`${API}/chunk/${encodeURIComponent(stem)}/${cacheSuffix()}`, { method: 'DELETE' });
     setStatus('Cache cleared.', '');
   } catch {
     setStatus('Could not clear cache.', 'error');
@@ -517,17 +847,19 @@ document.getElementById('clear-btn').addEventListener('click', async () => {
 // --- Load cache on PDF change ---
 document.getElementById('pdf-select').addEventListener('change', async () => {
   const pdf = document.getElementById('pdf-select').value;
-  if (pdf) loadCache(pdf, selectedMethod);
+  if (pdf) loadCache(pdf, cacheSuffix());
 });
 
-async function loadCache(pdf, method) {
+async function loadCache(pdf, suffix) {
   const stem = pdf.replace(/\.pdf$/i, '');
   try {
-    const res = await fetch(`${API}/chunk/${encodeURIComponent(stem)}/${method}`);
+    const res = await fetch(`${API}/chunk/${encodeURIComponent(stem)}/${suffix}`);
     if (res.ok) {
       const data = await res.json();
       setStatus(`${data.count} chunks (cached)`, 'success');
+      pipelineData = data.pipeline || [];
       loadChunks(data.chunks);
+      if (currentView === 'pipeline') renderPipeline(pipelineData, false);
     } else {
       clearView();
     }
@@ -539,6 +871,7 @@ async function loadCache(pdf, method) {
 // --- Load chunks into state ---
 function loadChunks(chunks) {
   allChunks = chunks;
+  buildChapterFilter(chunks);
   buildTypeFilter(chunks);
   applyFilters();
   document.getElementById('empty-state').style.display = 'none';
@@ -548,12 +881,74 @@ function loadChunks(chunks) {
 function clearView() {
   allChunks = [];
   filteredChunks = [];
+  pipelineData = [];
   document.getElementById('chunks-list').innerHTML = '';
   document.getElementById('pagination').style.display = 'none';
   document.getElementById('summary-bar').style.display = 'none';
   document.getElementById('empty-state').style.display = 'flex';
   document.getElementById('type-filter').innerHTML = '';
+  document.getElementById('chapter-filter').innerHTML =
+    '<span style="font-size:11px;color:var(--muted)">Run chunking to see chapters</span>';
   activeTypes.clear();
+  activeChapters.clear();
+  allChapterNums.clear();
+  document.getElementById('pipeline-view').innerHTML =
+    '<div class="pipeline-empty">Run chunking to see the pipeline.</div>';
+}
+
+// --- Chapter filter ---
+function buildChapterFilter(chunks) {
+  const chapterMap = {};
+  chunks.forEach(c => {
+    if (c.chapter) {
+      chapterMap[c.chapter] = c.chapter_title || `Chapter ${c.chapter}`;
+    }
+  });
+  const nums = Object.keys(chapterMap).sort((a, b) => parseInt(a) - parseInt(b));
+  allChapterNums = new Set(nums);
+  activeChapters = new Set(nums);
+
+  const container = document.getElementById('chapter-filter');
+  if (!nums.length) {
+    container.innerHTML = '<span style="font-size:11px;color:var(--muted)">No chapters detected</span>';
+    return;
+  }
+  container.innerHTML = '';
+
+  const allChip = document.createElement('div');
+  allChip.className = 'chapter-chip on';
+  allChip.textContent = 'all';
+  allChip.addEventListener('click', () => {
+    if (activeChapters.size === nums.length) {
+      activeChapters.clear();
+      container.querySelectorAll('.chapter-chip:not(.all-ch-chip)').forEach(c => c.classList.remove('on'));
+    } else {
+      activeChapters = new Set(nums);
+      container.querySelectorAll('.chapter-chip:not(.all-ch-chip)').forEach(c => c.classList.add('on'));
+    }
+    applyFilters();
+  });
+  allChip.classList.add('all-ch-chip');
+  container.appendChild(allChip);
+
+  nums.forEach(num => {
+    const chip = document.createElement('div');
+    chip.className = 'chapter-chip on';
+    chip.textContent = `Ch.${num}`;
+    chip.title = chapterMap[num];
+    chip.dataset.chapter = num;
+    chip.addEventListener('click', () => {
+      if (activeChapters.has(num)) {
+        activeChapters.delete(num);
+        chip.classList.remove('on');
+      } else {
+        activeChapters.add(num);
+        chip.classList.add('on');
+      }
+      applyFilters();
+    });
+    container.appendChild(chip);
+  });
 }
 
 // --- Type filter ---
@@ -566,7 +961,6 @@ function buildTypeFilter(chunks) {
   const container = document.getElementById('type-filter');
   container.innerHTML = '';
 
-  // All toggle
   const allChip = document.createElement('div');
   allChip.className = 'type-chip on';
   allChip.textContent = 'all';
@@ -621,6 +1015,7 @@ function applyFilters() {
 
   filteredChunks = allChunks.filter(c => {
     if (!activeTypes.has(c.type)) return false;
+    if (allChapterNums.size > 0 && c.chapter && !activeChapters.has(c.chapter)) return false;
     if (pageFrom && c.page_end < pageFrom) return false;
     if (pageTo < Infinity && c.page_start > pageTo) return false;
     if (search && !c.text.toLowerCase().includes(search) &&
@@ -633,7 +1028,7 @@ function applyFilters() {
   updateSummary();
 }
 
-// --- Render ---
+// --- Render chunks ---
 function renderPage() {
   const list = document.getElementById('chunks-list');
   const pag  = document.getElementById('pagination');
@@ -645,7 +1040,6 @@ function renderPage() {
 
   page.forEach(chunk => list.appendChild(buildCard(chunk)));
 
-  // Pagination
   if (totalPages > 1) {
     pag.style.display = 'flex';
     pag.innerHTML = '';
@@ -657,7 +1051,6 @@ function renderPage() {
     prev.addEventListener('click', () => { currentPage--; renderPage(); });
     pag.appendChild(prev);
 
-    // Page number buttons (max 7 shown)
     const range = pageRange(currentPage, totalPages);
     range.forEach(p => {
       if (p === '…') {
@@ -720,6 +1113,14 @@ function buildCard(chunk) {
   header.appendChild(badge);
   header.appendChild(idEl);
 
+  if (chunk.chapter_title) {
+    const cl = document.createElement('span');
+    cl.className = 'chunk-chapter-label';
+    cl.textContent = chunk.chapter_title;
+    cl.title = chunk.chapter_title;
+    header.appendChild(cl);
+  }
+
   if (chunk.heading_text) {
     const h = document.createElement('span');
     h.className = 'chunk-heading';
@@ -757,7 +1158,6 @@ function buildCard(chunk) {
   textEl.textContent = chunk.text;
   card.appendChild(textEl);
 
-  // Expand/collapse
   const expandBtn = document.createElement('button');
   expandBtn.className = 'expand-btn';
   expandBtn.textContent = 'Show more';
@@ -780,6 +1180,113 @@ function updateSummary() {
     .map(([t, n]) => `${n} ${t}`)
     .join(', ');
   el.innerHTML = `<strong>${filteredChunks.length}</strong> of ${allChunks.length} chunks shown — ${breakdown || 'no types selected'}`;
+}
+
+// --- Pipeline view ---
+function renderPipeline(stages, animate) {
+  const container = document.getElementById('pipeline-view');
+  if (!stages || !stages.length) {
+    container.innerHTML = '<div class="pipeline-empty">No pipeline data available. Run chunking first (cached results include pipeline data from v0.2+).</div>';
+    return;
+  }
+
+  const maxCount = Math.max(...stages.map(s => s.count), 1);
+
+  container.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'pipeline-header';
+  hdr.innerHTML = `<strong>${stages.length} stages</strong> · ${selectedMethod} method`;
+  container.appendChild(hdr);
+
+  stages.forEach((stage, i) => {
+    const lane = document.createElement('div');
+    lane.className = 'pipeline-lane';
+
+    // Connector column
+    const connector = document.createElement('div');
+    connector.className = 'lane-connector';
+    const dot = document.createElement('div');
+    dot.className = 'lane-dot';
+    const line = document.createElement('div');
+    line.className = 'lane-line';
+    connector.appendChild(dot);
+    connector.appendChild(line);
+
+    // Card
+    const card = document.createElement('div');
+    card.className = 'lane-card';
+    card.dataset.stage = stage.stage;
+
+    // Inherit dot colour from card's CSS custom stage colour if set
+    // (CSS handles this via attribute selector on lane-card)
+
+    const top = document.createElement('div');
+    top.className = 'lane-top';
+
+    const countEl = document.createElement('div');
+    countEl.className = 'lane-count' + (stage.count === 0 ? ' zero' : '');
+    countEl.textContent = animate ? '0' : stage.count.toLocaleString();
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'lane-stage-name';
+    nameEl.textContent = STAGE_LABELS[stage.stage] || stage.stage;
+
+    const elapsedEl = document.createElement('div');
+    elapsedEl.className = 'lane-elapsed';
+    elapsedEl.textContent = `${stage.elapsed_ms}ms`;
+
+    top.appendChild(countEl);
+    top.appendChild(nameEl);
+    top.appendChild(elapsedEl);
+
+    const detailEl = document.createElement('div');
+    detailEl.className = 'lane-detail';
+    detailEl.textContent = stage.detail || '';
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'lane-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'lane-bar';
+    barWrap.appendChild(bar);
+
+    card.appendChild(top);
+    card.appendChild(detailEl);
+    card.appendChild(barWrap);
+
+    lane.appendChild(connector);
+    lane.appendChild(card);
+    container.appendChild(lane);
+
+    if (animate) {
+      const delay = i * 180;
+      setTimeout(() => {
+        dot.classList.add('animate');
+        card.classList.add('animate');
+        // Animate count up
+        const target = stage.count;
+        const duration = 500;
+        const start = performance.now();
+        function tick(now) {
+          const t = Math.min((now - start) / duration, 1);
+          const ease = 1 - Math.pow(1 - t, 3);
+          countEl.textContent = Math.round(ease * target).toLocaleString();
+          if (t < 1) requestAnimationFrame(tick);
+          else countEl.textContent = target.toLocaleString();
+        }
+        requestAnimationFrame(tick);
+        // Bar fill
+        bar.style.width = ((stage.count / maxCount) * 100) + '%';
+
+        setTimeout(() => {
+          dot.classList.remove('animate');
+          card.classList.remove('animate');
+        }, 700);
+      }, delay);
+    } else {
+      bar.style.width = ((stage.count / maxCount) * 100) + '%';
+    }
+  });
 }
 
 function setStatus(msg, type) {

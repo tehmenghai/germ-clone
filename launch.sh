@@ -109,6 +109,17 @@ FRONTEND_PORT=$(free_port "$PREFERRED_FRONTEND")
 # --- start backend -----------------------------------------------------------
 
 echo "==> germ//clone launcher"
+
+# --- pre-flight checks -------------------------------------------------------
+
+if [[ ! -f "$BACKEND/.env" ]]; then
+  echo ""
+  echo "ERROR: source/backend/.env not found."
+  echo "       Copy .env.example to .env and set DATABASE_URL (your Neon branch URL)."
+  echo ""
+  exit 1
+fi
+
 echo "--> Starting backend  (port $BACKEND_PORT)"
 cd "$BACKEND"
 if [[ ! -d ".venv" ]]; then
