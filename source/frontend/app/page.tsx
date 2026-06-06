@@ -52,6 +52,7 @@ export default function HomePage() {
 
     es.onmessage = (e) => {
       const event: StageEvent = JSON.parse(e.data);
+      if (event.stage === "compose" && event.status === "active") return;
       collected.push(event);
       setEvents([...collected]);
       setActiveIdx(idx);
