@@ -86,6 +86,20 @@ Reference plan: `GRAND_PLAN_BEN0603.md`
 
 ---
 
+## Track C — Module 3.2a Transcript Ingestion
+
+| Step | Description | Status |
+|---|---|---|
+| C.setup | Make parse + chunk scripts configurable via module JSON configs | [x] |
+| C.1 | Create `configs/3.1.json` and `configs/3.2a.json` | [x] |
+| C.2 | Create `AGENT_SKILL_TRANSCRIPT_BEN0603_3.2a.md` | [x] |
+| C.3 | Parse 3.2a VTT → `parsed_vtt_3.2a_BEN0603.jsonl` (47 segs, 16,489 words) | [x] |
+| C.4 | LLM chunk → `chunks_transcript_3.2a_BEN0603.jsonl` (49 chunks, 17 batches) | [x] |
+| C.5 | Seed to canonical (49/49 chunks, Gemini embeddings) | [x] |
+| C.verify | Retrieval verify — 3.2a transcript chunks returned with correct fields | [x] |
+
+---
+
 ## Completion Log
 
 Each entry added when a step is marked done.

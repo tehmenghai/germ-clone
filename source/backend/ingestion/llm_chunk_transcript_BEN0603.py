@@ -3,11 +3,11 @@ llm_chunk_transcript_BEN0603.py
 
 LLM-powered semantic chunking for lecture transcripts (BEN0603 pipeline).
 
-Reads:  data_BEN0603/parsed_vtt_BEN0603.jsonl          (from parse_vtt_BEN0603.py)
-Reads:  data_BEN0601/marker_output_BEN0601/3.1 - .../  (slide context for topic alignment)
-Reads:  sandbox/ben/docs_BEN0603/AGENT_SKILL_TRANSCRIPT_BEN0603.md
+Reads:  data_BEN0603/parsed_vtt_{module}_BEN0603.jsonl  (from parse_vtt_BEN0603.py)
+Reads:  slide markdown file(s) for topic alignment context
+Reads:  module AGENT_SKILL markdown for LLM instructions
 
-Writes: data_BEN0603/chunks_transcript_BEN0603.jsonl   (BEN0602-schema JSONL)
+Writes: data_BEN0603/chunks_transcript_{module}_BEN0603.jsonl  (BEN0602-schema JSONL)
 
 Differences from llm_clean_chunk_BEN0602.py:
   - Input is parsed VTT segments, not Marker Markdown
@@ -18,7 +18,10 @@ Differences from llm_clean_chunk_BEN0602.py:
 
 Usage (from project root):
     python source/backend/ingestion/llm_chunk_transcript_BEN0603.py
-    python source/backend/ingestion/llm_chunk_transcript_BEN0603.py --sample   # first 3 batches only
+    python source/backend/ingestion/llm_chunk_transcript_BEN0603.py --module 3.2a
+    python source/backend/ingestion/llm_chunk_transcript_BEN0603.py --module 3.2a --sample
+
+Module configs: sandbox/ben/docs_BEN0603/configs/{module}.json
 """
 
 import json
@@ -34,18 +37,8 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 
 ENV_FILE = PROJECT_ROOT / "source/backend/ingestion/.env_BEN0601"
-PARSED_VTT = PROJECT_ROOT / "data_BEN0603/parsed_vtt_BEN0603.jsonl"
-SLIDE_MD = (
-    PROJECT_ROOT
-    / "data_BEN0601/marker_output_BEN0601"
-    / "3.1 - Probability and Statistics"
-    / "3.1 - Probability and Statistics.md"
-)
-SKILL_FILE = PROJECT_ROOT / "sandbox/ben/docs_BEN0603/AGENT_SKILL_TRANSCRIPT_BEN0603.md"
-OUTPUT_DIR = PROJECT_ROOT / "data_BEN0603"
-OUTPUT_FILE = OUTPUT_DIR / "chunks_transcript_BEN0603.jsonl"
-SAMPLE_FILE = OUTPUT_DIR / "sample_chunks_transcript_BEN0603.jsonl"
 
+# These are set by load_module_config() at runtime
 SOURCE_FILE = "3.1 - Probability and Statistics_Recording.transcript.vtt"
 LESSON_TITLE = "Probability and Statistics for Machine Learning"
 
@@ -220,14 +213,28 @@ def batch_segments(segments: list[dict], max_words: int = WORD_BATCH_SIZE) -> li
 
 
 # ---------------------------------------------------------------------------
+# Module config loader
+# ---------------------------------------------------------------------------
+
+def load_module_config(module: str) -> dict:
+    config_file = PROJECT_ROOT / "sandbox/ben/docs_BEN0603/configs" / f"{module}.json"
+    if not config_file.exists():
+        print(f"[ERROR] Module config not found: {config_file}")
+        sys.exit(1)
+    return json.loads(config_file.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------------------
 # Slide context loader
 # ---------------------------------------------------------------------------
 
-def load_slide_context(slide_md: Path) -> str:
-    """Load slide markdown for topic-alignment context."""
-    if not slide_md.exists():
-        return ""
-    return slide_md.read_text(encoding="utf-8")
+def load_slide_context(slide_mds: list[Path]) -> str:
+    """Load and concatenate slide markdown files for topic-alignment context."""
+    parts = []
+    for slide_md in slide_mds:
+        if slide_md.exists():
+            parts.append(slide_md.read_text(encoding="utf-8"))
+    return "\n\n---\n\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -315,8 +322,11 @@ def build_output_record(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    global SOURCE_FILE, LESSON_TITLE
+
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument("--module", default="3.1", help="Module identifier (e.g. '3.1', '3.2a')")
     parser.add_argument(
         "--sample",
         action="store_true",
@@ -324,8 +334,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    cfg = load_module_config(args.module)
+    SOURCE_FILE = cfg["source_file"]
+    LESSON_TITLE = cfg["lesson_title"]
+
+    parsed_vtt = PROJECT_ROOT / cfg["parsed_output_relative"]
+    skill_file = PROJECT_ROOT / cfg["agent_skill_relative"]
+    output_file = PROJECT_ROOT / cfg["chunks_output_relative"]
+    sample_file = PROJECT_ROOT / cfg["sample_output_relative"]
+    output_dir = output_file.parent
+    slide_mds = [PROJECT_ROOT / p for p in cfg["slide_md_relatives"]]
+
     # Validate inputs
-    for path, label in [(PARSED_VTT, "parsed VTT"), (SKILL_FILE, "AGENT_SKILL"), (ENV_FILE, ".env_BEN0601")]:
+    for path, label in [(parsed_vtt, "parsed VTT"), (skill_file, "AGENT_SKILL"), (ENV_FILE, ".env_BEN0601")]:
         if not path.exists():
             print(f"[ERROR] {label} not found: {path}")
             sys.exit(1)
@@ -336,16 +357,18 @@ def main() -> None:
         sys.exit(1)
 
     # Load inputs
-    system_prompt = SKILL_FILE.read_text(encoding="utf-8")
-    slide_context = load_slide_context(SLIDE_MD)
+    system_prompt = skill_file.read_text(encoding="utf-8")
+    slide_context = load_slide_context(slide_mds)
     segments = [
         json.loads(line)
-        for line in PARSED_VTT.read_text(encoding="utf-8").splitlines()
+        for line in parsed_vtt.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
 
+    slide_names = ", ".join(p.name for p in slide_mds if p.exists())
+    print(f"[INFO]  Module          : {args.module}")
     print(f"[INFO]  Segments loaded  : {len(segments)}")
-    print(f"[INFO]  Slide context    : {len(slide_context):,} chars  ({SLIDE_MD.name})")
+    print(f"[INFO]  Slide context    : {len(slide_context):,} chars  ({slide_names})")
     print(f"[INFO]  Batch size       : ≤{WORD_BATCH_SIZE} words")
     print(f"[INFO]  LLM model        : {MODEL}")
 
@@ -356,8 +379,8 @@ def main() -> None:
         batches = batches[:3]
         print(f"[INFO]  --sample mode: processing first {len(batches)} batches only")
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    source_slug = slugify("3_1_probability_statistics_transcript")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    source_slug = slugify(cfg["source_file"].replace(".vtt", "").replace(" ", "_"))
 
     all_chunks: list[dict] = []
     seq = 1
@@ -393,21 +416,20 @@ def main() -> None:
 
     # Write output
     if all_chunks:
-        with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        with output_file.open("w", encoding="utf-8") as f:
             for chunk in all_chunks:
                 f.write(json.dumps(chunk, ensure_ascii=False) + "\n")
 
-        # Write sample (first 5)
-        with SAMPLE_FILE.open("w", encoding="utf-8") as f:
+        with sample_file.open("w", encoding="utf-8") as f:
             for chunk in all_chunks[:5]:
                 f.write(json.dumps(chunk, ensure_ascii=False) + "\n")
 
         print(f"\n[OK]    Chunks written  : {len(all_chunks)}")
-        print(f"[OK]    Output          : {OUTPUT_FILE.relative_to(PROJECT_ROOT)}")
-        print(f"[OK]    Sample (first 5): {SAMPLE_FILE.relative_to(PROJECT_ROOT)}")
-        print("\n[NEXT]  Inspect sample_chunks_transcript_BEN0603.jsonl")
+        print(f"[OK]    Output          : {output_file.relative_to(PROJECT_ROOT)}")
+        print(f"[OK]    Sample (first 5): {sample_file.relative_to(PROJECT_ROOT)}")
+        print(f"\n[NEXT]  Inspect {sample_file.name}")
         print("        Then run: python source/backend/ingestion/seed_from_chunks_BEN0602.py \\")
-        print("            data_BEN0603/chunks_transcript_BEN0603.jsonl")
+        print(f"            {output_file.relative_to(PROJECT_ROOT)}")
     else:
         print("\n[WARN]  No chunks produced — check AGENT_SKILL and Gemini responses.")
 

@@ -7,19 +7,21 @@ ready for LLM chunking by llm_chunk_transcript_BEN0603.py.
 Processing steps:
   1. Parse VTT cue blocks → {cue_id, ts_start, ts_end, ts_start_sec, speaker, raw_text}
   2. Pre-lecture filter — drop everything before teaching starts (configurable cutoff)
-  3. Speaker filter — keep germayne and Shumin Lai | NTU; pair student questions
-     with the following germayne response as Q&A blocks
-  4. Notebook segment filter — drop code-narration periods where germayne is
-     running live Jupyter exercises (no standalone educational value)
+  3. Speaker filter — keep teaching speakers; pair student questions
+     with the following instructor response as Q&A blocks
+  4. Notebook segment filter — drop code-narration periods (no standalone educational value)
   5. Cue merger — group consecutive same-speaker cues (gap ≤ GAP_THRESHOLD seconds)
      into paragraph blocks; drop blocks < MIN_WORDS words
-  6. Q&A labelling — mark paired student+germayne blocks as segment_type='qa'
+  6. Q&A labelling — mark paired student+instructor blocks as segment_type='qa'
   7. Write output JSONL to data_BEN0603/
 
 Usage (from project root):
     python source/backend/ingestion/parse_vtt_BEN0603.py
+    python source/backend/ingestion/parse_vtt_BEN0603.py --module 3.2a
     python source/backend/ingestion/parse_vtt_BEN0603.py --vtt "path/to/file.vtt"
     python source/backend/ingestion/parse_vtt_BEN0603.py --dry-run   # prints stats only
+
+Module configs: sandbox/ben/docs_BEN0603/configs/{module}.json
 """
 
 import argparse
@@ -31,46 +33,24 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 
-DEFAULT_VTT = (
-    PROJECT_ROOT
-    / "data_BEN0601/raw_BEN0601"
-    / "3.1 - Probability and Statistics_Recording.transcript.vtt"
-)
-OUTPUT_DIR = PROJECT_ROOT / "data_BEN0603"
-OUTPUT_FILE = OUTPUT_DIR / "parsed_vtt_BEN0603.jsonl"
+# ── Defaults (3.1 values — overridden by --module config) ────────────────────
 
-# ── Tuning constants ──────────────────────────────────────────────────────────
-
-# Seconds from recording start before teaching begins.
-# Everything before this is admin / attendance / introductions.
-# 3.1 transcript: germayne says "hopefully you guys can see my slides" at 00:35:46.
 LECTURE_START_SEC: float = 35 * 60 + 46  # 2146 s
-
-# Teaching speakers — all others are students or admin.
 TEACHING_SPEAKERS: set[str] = {"germayne", "Shumin Lai | NTU"}
 
-# Student cue included only if followed by a teaching speaker within this many seconds.
-QA_WINDOW_SEC: float = 30.0
-
-# Student cue must have at least this many words to count as a real question.
-# Shorter student utterances (backchannels like "yeah", "okay", single names) are dropped.
-MIN_QUESTION_WORDS: int = 6
-
-# Consecutive same-speaker cues merged if gap between them is ≤ this.
-GAP_THRESHOLD_SEC: float = 30.0
-
-# Merged blocks shorter than this are dropped (backchannels like "Correct", "Yes").
-MIN_WORDS: int = 10
-
-# Notebook exercise periods — verbal code narration with no self-contained content.
-# Format: (start_sec, end_sec).  Approximate; detection phrases take priority.
 NOTEBOOK_PERIODS: list[tuple[float, float]] = [
-    (1 * 3600 + 5 * 60, 1 * 3600 + 45 * 60),    # Part 1: ~01:05 – ~01:45
-    (2 * 3600 + 13 * 60, 2 * 3600 + 39 * 60),   # Part 2: ~02:13 – ~02:39
-    (3 * 3600 + 15 * 60, 3 * 3600 + 40 * 60),   # Part 3: ~03:15 – ~03:40
+    (1 * 3600 + 5 * 60, 1 * 3600 + 45 * 60),
+    (2 * 3600 + 13 * 60, 2 * 3600 + 39 * 60),
+    (3 * 3600 + 15 * 60, 3 * 3600 + 40 * 60),
 ]
 
-# Phrases that signal entry into a notebook exercise segment.
+# ── Fixed constants (same for all modules) ────────────────────────────────────
+
+QA_WINDOW_SEC: float = 30.0
+MIN_QUESTION_WORDS: int = 6
+GAP_THRESHOLD_SEC: float = 30.0
+MIN_WORDS: int = 10
+
 NOTEBOOK_ENTRY_PATTERNS: list[str] = [
     r"let me go.{0,15}notebook",
     r"go.{0,10}notebook",
@@ -78,9 +58,10 @@ NOTEBOOK_ENTRY_PATTERNS: list[str] = [
     r"run.{0,10}cell",
     r"let.{0,10}do.{0,10}exercise",
     r"jupyter",
+    r"go.{0,10}code.{0,10}component",
+    r"go into the code",
 ]
 
-# Phrases that signal exit from a notebook segment back to slides.
 NOTEBOOK_EXIT_PATTERNS: list[str] = [
     r"go back.{0,15}slide",
     r"back.{0,10}deck",
@@ -88,6 +69,27 @@ NOTEBOOK_EXIT_PATTERNS: list[str] = [
     r"so we saw from the notebook",
     r"from the exercise",
 ]
+
+
+# ── Module config loader ──────────────────────────────────────────────────────
+
+def load_module_config(module: str) -> dict:
+    config_file = PROJECT_ROOT / "sandbox/ben/docs_BEN0603/configs" / f"{module}.json"
+    if not config_file.exists():
+        print(f"[ERROR] Module config not found: {config_file}")
+        sys.exit(1)
+    return json.loads(config_file.read_text(encoding="utf-8"))
+
+
+def apply_module_config(cfg: dict) -> tuple[Path, Path]:
+    """Apply config to module-level globals. Returns (vtt_path, output_file)."""
+    global LECTURE_START_SEC, TEACHING_SPEAKERS, NOTEBOOK_PERIODS
+    LECTURE_START_SEC = float(cfg["lecture_start_sec"])
+    TEACHING_SPEAKERS = set(cfg["teaching_speakers"])
+    NOTEBOOK_PERIODS = [tuple(p) for p in cfg.get("notebook_periods", [])]
+    vtt_path = PROJECT_ROOT / cfg["vtt_relative"]
+    output_file = PROJECT_ROOT / cfg["parsed_output_relative"]
+    return vtt_path, output_file
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -349,17 +351,22 @@ def to_output_record(seg: dict) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Parse VTT transcript for BEN0603")
-    parser.add_argument("--vtt", default=str(DEFAULT_VTT), help="Path to .vtt file")
+    parser.add_argument("--module", default="3.1", help="Module identifier (e.g. '3.1', '3.2a')")
+    parser.add_argument("--vtt", default=None, help="Override VTT path from config")
     parser.add_argument(
         "--dry-run", action="store_true", help="Print stats only, do not write output"
     )
     args = parser.parse_args()
 
-    vtt_path = Path(args.vtt)
+    cfg = load_module_config(args.module)
+    default_vtt, output_file = apply_module_config(cfg)
+
+    vtt_path = Path(args.vtt) if args.vtt else default_vtt
     if not vtt_path.exists():
         print(f"[ERROR] VTT file not found: {vtt_path}")
         sys.exit(1)
 
+    print(f"[INFO] Module  : {args.module}")
     print(f"[INFO] Parsing: {vtt_path.name}")
 
     # Pipeline
@@ -395,14 +402,15 @@ def main() -> None:
         return
 
     # Write output
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     records = [to_output_record(s) for s in segments]
-    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+    with output_file.open("w", encoding="utf-8") as f:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-    print(f"\n[OK] Written: {OUTPUT_FILE.relative_to(PROJECT_ROOT)}")
-    print("[NEXT] Inspect the output, then run llm_chunk_transcript_BEN0603.py")
+    print(f"\n[OK] Written: {output_file.relative_to(PROJECT_ROOT)}")
+    print("[NEXT] Inspect the output, then run:")
+    print(f"       python source/backend/ingestion/llm_chunk_transcript_BEN0603.py --module {args.module}")
 
 
 if __name__ == "__main__":
