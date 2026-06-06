@@ -72,6 +72,72 @@ const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
       note: "Harmonic mean — balances precision against recall",
     },
   ],
+  "distributions": [
+    {
+      eq: "f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}\\,e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}",
+      note: "Normal (Gaussian) probability density — μ shifts, σ widens",
+    },
+    {
+      eq: "\\mathbb{E}[X] = \\mu, \\quad \\operatorname{Var}(X) = \\sigma^2",
+      note: "Mean and variance fully parameterise the normal",
+    },
+    {
+      eq: "P(\\mu - \\sigma \\le X \\le \\mu + \\sigma) \\approx 0.68",
+      note: "The 68–95–99.7 rule: ~68% of mass within one σ",
+    },
+  ],
+  "kmeans": [
+    {
+      eq: "\\underset{c_1\\dots c_k}{\\arg\\min}\\sum_{i=1}^{n}\\min_{j}\\lVert x_i - c_j\\rVert^2",
+      note: "Objective: minimise within-cluster squared distance (inertia)",
+    },
+    {
+      eq: "c_j = \\frac{1}{|S_j|}\\sum_{x \\in S_j} x",
+      note: "Update step — each centroid moves to its cluster's mean",
+    },
+    {
+      eq: "a_i = \\underset{j}{\\arg\\min}\\,\\lVert x_i - c_j\\rVert",
+      note: "Assignment step — each point joins its nearest centroid",
+    },
+  ],
+  "time-series": [
+    {
+      eq: "y_t = T_t + S_t + \\varepsilon_t",
+      note: "Additive decomposition: trend + seasonality + residual",
+    },
+    {
+      eq: "\\hat{T}_t = \\frac{1}{w}\\sum_{i=-(w-1)/2}^{(w-1)/2} y_{t+i}",
+      note: "Trend estimate via a centred moving average (window w)",
+    },
+    {
+      eq: "\\hat{y}_{t+h} = T_{t+h} + S_{(t+h)\\bmod m}",
+      note: "Forecast h steps ahead: extend trend, repeat the seasonal cycle m",
+    },
+  ],
+  "convolution": [
+    {
+      eq: "(I * K)(x,y) = \\sum_{i}\\sum_{j} I(x+i,\\,y+j)\\,K(i,j)",
+      note: "2D convolution — slide the kernel K over image I",
+    },
+    {
+      eq: "K_{\\text{edge}} = \\begin{bmatrix} -1 & -1 & -1 \\\\ -1 & 8 & -1 \\\\ -1 & -1 & -1 \\end{bmatrix}",
+      note: "An edge kernel sums to 0 — flat regions vanish, edges survive",
+    },
+  ],
+  "embeddings": [
+    {
+      eq: "\\cos(\\theta) = \\frac{\\mathbf{a}\\cdot\\mathbf{b}}{\\lVert\\mathbf{a}\\rVert\\,\\lVert\\mathbf{b}\\rVert}",
+      note: "Cosine similarity — angle between two word vectors",
+    },
+    {
+      eq: "\\mathbf{a}\\cdot\\mathbf{b} = \\sum_{i=1}^{d} a_i b_i",
+      note: "Dot product over the d embedding dimensions",
+    },
+    {
+      eq: "\\text{king} - \\text{man} + \\text{woman} \\approx \\text{queen}",
+      note: "Vector arithmetic captures analogies in embedding space",
+    },
+  ],
 };
 
 interface MLWorkspaceProps {
@@ -271,8 +337,8 @@ function EmptyState({ hasQuery }: { hasQuery: boolean }) {
             No interactive visual for this topic <strong style={{ color: "var(--txt)" }}>yet</strong>.
           </p>
           <p style={{ fontSize: 12, color: "var(--txt-faint)", maxWidth: "26ch", lineHeight: 1.5 }}>
-            The grounded answer is on the left. Live visuals currently cover bias–variance,
-            regularization, KNN, gradient descent and confusion matrix.
+            The grounded answer is on the left. Live visuals cover the core topics across
+            modules 3.1–3.10 — try rephrasing toward one of them.
           </p>
         </>
       ) : (

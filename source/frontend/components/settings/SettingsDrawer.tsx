@@ -201,7 +201,7 @@ function InferenceToggle({ value, onChange }: { value: InferenceBackend; onChang
 function CorpusManager() {
   return (
     <div style={{ fontSize: 11.5, color: "var(--txt-dim)", lineHeight: 1.7 }}>
-      ✓ 5 topics · bias–variance, regularization, KNN, gradient descent, confusion matrix<br />
+      ✓ 10 topics · all of modules 3.1–3.10 · bias–variance, regularization, KNN, gradient descent, confusion matrix, distributions, k-means, time series, convolution, embeddings<br />
       ✓ seed corpus · lesson transcripts + textbook extracts<br />
       <span style={{ color: "var(--txt-faint)" }}>retrieval scope: seed corpus only · web off</span>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>

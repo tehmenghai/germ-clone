@@ -23,14 +23,35 @@ describe("topic detection (shared)", () => {
     expect(detectTopic("how does adam differ from sgd?")).toBe("gradient-descent");
   });
 
+  it("routes the five expansion topics (modules 3.1, 3.5, 3.6, 3.8, 3.9/3.10)", () => {
+    expect(detectTopic("what is a normal distribution?")).toBe("distributions");
+    expect(detectTopic("how does k-means clustering work?")).toBe("kmeans");
+    expect(detectTopic("forecast a time series with seasonality")).toBe("time-series");
+    expect(detectTopic("explain a convolution kernel in a CNN")).toBe("convolution");
+    expect(detectTopic("cosine similarity between word embeddings")).toBe("embeddings");
+  });
+
   it("returns null for unmatched queries", () => {
-    expect(detectTopic("what is a transformer?")).toBeNull();
+    expect(detectTopic("tell me a joke")).toBeNull();
     expect(detectTopic("")).toBeNull();
   });
 
   it("module mapping agrees with topic detection", () => {
     expect(detectActiveModules("confusion matrix")).toEqual(["3.3"]);
     expect(detectActiveModules("bias variance")).toEqual(["3.3", "3.4"]);
+    expect(detectActiveModules("normal distribution")).toEqual(["3.1"]);
+    expect(detectActiveModules("k-means")).toEqual(["3.5"]);
+    expect(detectActiveModules("word embeddings")).toEqual(["3.9", "3.10"]);
     expect(detectActiveModules("unrelated")).toEqual([]);
+  });
+
+  it("covers all ten course modules 3.1–3.10", () => {
+    const covered = new Set<string>();
+    const probes = [
+      "bias variance", "regularization", "knn", "gradient descent", "confusion matrix",
+      "normal distribution", "k-means", "time series", "convolution", "word embeddings",
+    ];
+    for (const p of probes) detectActiveModules(p).forEach((m) => covered.add(m));
+    for (let i = 1; i <= 10; i++) expect(covered.has(`3.${i}`)).toBe(true);
   });
 });
