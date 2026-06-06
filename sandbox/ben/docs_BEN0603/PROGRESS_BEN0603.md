@@ -76,13 +76,13 @@ Reference plan: `GRAND_PLAN_BEN0603.md`
 
 | Step | Description | Status |
 |---|---|---|
-| B.pre | Run 3.1 PDF through BEN0602 pipeline + upsert 3.1 slides to canonical | [ ] |
-| B.1 | Write `AGENT_SKILL_TRANSCRIPT_BEN0603.md` | [ ] |
-| B.2 | Build `parse_vtt_BEN0603.py` | [ ] |
-| B.2t | Test parse output — manual inspection | [ ] |
-| B.3 | Build `llm_chunk_transcript_BEN0603.py` | [ ] |
-| B.run | Final pipeline run — LLM chunk + upsert 3.1 transcript to canonical | [ ] |
-| B.verify | Retrieval verification — confirm transcript chunks returned with correct fields | [ ] |
+| B.pre | Run 3.1 PDF through BEN0602 pipeline + upsert 3.1 slides to canonical | [x] |
+| B.1 | Write `AGENT_SKILL_TRANSCRIPT_BEN0603.md` | [x] |
+| B.2 | Build `parse_vtt_BEN0603.py` | [x] |
+| B.2t | Test parse output — manual inspection | [x] |
+| B.3 | Build `llm_chunk_transcript_BEN0603.py` | [x] |
+| B.run | Final pipeline run — LLM chunk + upsert 3.1 transcript to canonical | [x] |
+| B.verify | Retrieval verification — confirm transcript chunks returned with correct fields | [x] |
 
 ---
 

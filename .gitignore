@@ -55,6 +55,11 @@ data_BEN0602/chunks_BEN0602/chunks_BEN0602.jsonl
 # Keep placeholder and sample for teammate inspection
 !data_BEN0602/chunks_BEN0602/.gitkeep_BEN0602
 !data_BEN0602/chunks_BEN0602/sample_chunks_BEN0602.jsonl
+# BEN0603 transcript pipeline — generated data
+data_BEN0603/chunks_transcript_BEN0603.jsonl
+data_BEN0603/parsed_vtt_BEN0603.jsonl
+# Keep sample for teammate inspection
+!data_BEN0603/sample_chunks_transcript_BEN0603.jsonl
 
 # OS
 .DS_Store
