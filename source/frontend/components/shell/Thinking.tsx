@@ -14,9 +14,10 @@ const PIPE_STAGES = [
 
 interface ThinkingProps {
   activeIdx: number;
+  onOpenTrace?: () => void;
 }
 
-export function Thinking({ activeIdx }: ThinkingProps) {
+export function Thinking({ activeIdx, onOpenTrace }: ThinkingProps) {
   const stage = activeIdx >= 0 && activeIdx < PIPE_STAGES.length
     ? PIPE_STAGES[activeIdx]
     : null;
@@ -47,16 +48,23 @@ export function Thinking({ activeIdx }: ThinkingProps) {
           "thinking…"
         )}
       </span>
-      <span
+      <button
+        onClick={onOpenTrace}
+        disabled={!onOpenTrace}
         style={{
           marginLeft: "auto",
           fontSize: 11,
-          color: "var(--txt-faint)",
+          color: onOpenTrace ? "var(--green)" : "var(--txt-faint)",
           letterSpacing: "0.03em",
+          background: "transparent",
+          border: "none",
+          cursor: onOpenTrace ? "pointer" : "default",
+          padding: "2px 4px",
+          fontFamily: "var(--font-mono, monospace)",
         }}
       >
         watch the agent →
-      </span>
+      </button>
     </div>
   );
 }

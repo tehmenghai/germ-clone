@@ -1,7 +1,8 @@
 "use client";
 
 import { type Theme, getTheme, setTheme } from "@/lib/theme";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { type InferenceBackend } from "@/lib/api";
 
 export type ViewMode = "reading" | "console";
 export type Difficulty = "eli5" | "standard" | "academia";
@@ -16,14 +17,15 @@ interface HeaderProps {
   ragPipeActive?: boolean;
   onRagPipe?: () => void;
   hasActiveTopic?: boolean;
+  backend: InferenceBackend;
+  onBackendChange: (v: InferenceBackend) => void;
 }
 
-export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, onHome, ragPipeActive, onRagPipe, hasActiveTopic }: HeaderProps) {
-  const [theme, setThemeState] = useState<Theme>("matrix");
-
-  useEffect(() => {
-    setThemeState(getTheme());
-  }, []);
+export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, onHome, ragPipeActive, onRagPipe, hasActiveTopic, backend, onBackendChange }: HeaderProps) {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "matrix";
+    return (document.documentElement.getAttribute("data-theme") as Theme) ?? getTheme();
+  });
 
   function toggleTheme() {
     const next: Theme = theme === "matrix" ? "clinical" : "matrix";
@@ -71,9 +73,9 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
           viewBox="0 0 32 32"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          style={{ flexShrink: 0 }}
+          style={{ flexShrink: 0, border: "1px solid var(--line)", borderRadius: 7 }}
         >
-          <rect width="32" height="32" rx="7" fill="#050f07"/>
+          <rect width="32" height="32" rx="7" fill="var(--panel)"/>
           {/* Head — organic irregular beziers, sketch-like */}
           <path d="M16 4.8 C13.1 4.6 10.3 6.2 9.3 8.7 C8.5 10.7 8.7 12.4 8.1 14.6 C7.6 16.8 7.9 18.6 9.3 20.2 C10.6 21.7 12.1 23.0 13.2 24.6 C14.1 25.8 14.9 26.7 16 26.9 C17.1 26.7 17.9 25.9 18.8 24.7 C19.9 23.2 21.5 21.8 22.7 20.3 C24.1 18.6 24.4 16.9 23.9 14.7 C23.4 12.5 23.5 10.8 22.7 8.8 C21.7 6.3 18.9 4.9 16 4.8Z" stroke="#00e050" strokeWidth="1.05" strokeLinejoin="round" opacity={0.88}/>
           {/* Nose hint */}
@@ -121,12 +123,11 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
           onChange={(v) => onDifficulty(v as Difficulty)}
         />
 
-        {/* RAG pipe pill */}
+        {/* Agent Trace pill */}
         <button
           onClick={onRagPipe}
-          disabled={!hasActiveTopic}
-          aria-label="Show RAG agent pipeline"
-          title="Show RAG agent pipeline"
+          aria-label="Show agent trace"
+          title="Show agent trace"
           style={{
             fontSize: 11,
             padding: "7px 12px",
@@ -134,34 +135,17 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
             border: `1px solid ${ragPipeActive ? "var(--green-deep)" : "var(--line)"}`,
             background: ragPipeActive ? "color-mix(in oklab, var(--green-deep) 20%, var(--panel))" : "var(--panel)",
             color: ragPipeActive ? "var(--green)" : "var(--txt-faint)",
-            cursor: hasActiveTopic ? "pointer" : "not-allowed",
-            opacity: hasActiveTopic ? 1 : 0.45,
+            cursor: "pointer",
             fontFamily: "var(--font-mono, monospace)",
             whiteSpace: "nowrap",
             transition: "background 0.15s, color 0.15s, border-color 0.15s",
           }}
         >
-          ◷ RAG pipe
+          ◷ Agent Trace
         </button>
 
-        {/* LLM pill — static until engine lands */}
-        <div
-          className="font-mono"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 11,
-            border: "1px solid var(--line)",
-            borderRadius: 999,
-            padding: "7px 12px",
-            background: "var(--panel)",
-            color: "var(--txt-dim)",
-          }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "var(--glow)", flexShrink: 0 }} />
-          <strong style={{ color: "var(--txt)", fontWeight: 600 }}>llama3.2</strong>
-        </div>
+        {/* LLM pill — click to switch backend */}
+        <ModelPill backend={backend} onBackendChange={onBackendChange} />
 
         {/* Theme toggle */}
         <IconButton
@@ -339,6 +323,119 @@ function SegControl({ options, value, onChange }: {
   );
 }
 
+
+const BACKEND_META: Record<InferenceBackend, { label: string; model: string }> = {
+  ollama:      { label: "Local",       model: "llama3.2" },
+  groq:        { label: "Groq",        model: "llama-3.1-8b-instant" },
+  cerebras:    { label: "Cerebras",    model: "gpt-oss-120b" },
+  gemini:      { label: "Gemini",      model: "gemini-2.0-flash" },
+  openrouter:  { label: "OpenRouter",  model: "nemotron-120b:free" },
+  cloud:       { label: "Groq",        model: "llama-3.1-8b-instant" },
+};
+
+function ModelPill({ backend, onBackendChange }: { backend: InferenceBackend; onBackendChange: (v: InferenceBackend) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [open]);
+
+  function select(v: InferenceBackend) {
+    onBackendChange(v);
+    setOpen(false);
+  }
+
+  const meta = BACKEND_META[backend];
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Switch LLM backend"
+        title="Switch LLM backend"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 11,
+          border: `1px solid ${open ? "var(--green-deep)" : "var(--line)"}`,
+          borderRadius: 999,
+          padding: "7px 12px",
+          background: open ? "color-mix(in oklab, var(--green-deep) 15%, var(--panel))" : "var(--panel)",
+          color: "var(--txt-dim)",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono, monospace)",
+          transition: "background 0.15s, border-color 0.15s",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "var(--glow)", flexShrink: 0 }} />
+        <strong style={{ color: "var(--txt)", fontWeight: 600 }}>{meta.model}</strong>
+        <span style={{ color: "var(--txt-faint)", fontSize: 10 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            background: "var(--bg)",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            overflow: "hidden",
+            zIndex: 50,
+            minWidth: 200,
+            boxShadow: "0 8px 24px oklch(0 0 0 / 0.4)",
+            animation: "fadein 0.15s",
+          }}
+        >
+          {(["ollama", "groq", "cerebras", "gemini", "openrouter"] as InferenceBackend[]).map((v) => {
+            const m = BACKEND_META[v];
+            const active = backend === v;
+            return (
+              <button
+                key={v}
+                onClick={() => select(v)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "none",
+                  borderBottom: "1px solid var(--line-soft)",
+                  background: active ? "color-mix(in oklab, var(--green) 8%, var(--panel))" : "transparent",
+                  color: active ? "var(--txt)" : "var(--txt-dim)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontFamily: "var(--font-mono, monospace)",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                  background: active ? "var(--green)" : "var(--line)",
+                  boxShadow: active ? "var(--glow)" : "none",
+                }} />
+                <span>
+                  <span style={{ fontWeight: 600, color: active ? "var(--green)" : "var(--txt)" }}>{m.label}</span>
+                  <span style={{ color: "var(--txt-faint)", fontSize: 10, marginLeft: 6 }}>· {m.model}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function IconButton({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (

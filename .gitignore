@@ -62,6 +62,9 @@ data_BEN0603/parsed_vtt_*.jsonl
 !data_BEN0603/sample_chunks_transcript_BEN0603.jsonl
 !data_BEN0603/sample_chunks_transcript_3.2a_BEN0603.jsonl
 
+# Sandbox — all developer sandboxes ignored; not for tracking
+sandbox/
+
 # OS
 .DS_Store
 Thumbs.db

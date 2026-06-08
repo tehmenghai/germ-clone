@@ -43,6 +43,34 @@ html, body {
 .answer-prose strong { color: var(--txt); font-weight: 400; }
 .answer-prose code { font-family: var(--font-mono, monospace); font-size: 13px; background: var(--panel); padding: 1px 5px; border-radius: 4px; color: var(--cyan); }
 
+/* KaTeX fonts — served from /public so they resolve in both dev and prod.
+   These @font-face declarations override the relative paths in katex.min.css. */
+@font-face { font-family: KaTeX_Main;       src: url('/fonts/katex/KaTeX_Main-Regular.woff2')      format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Main;       src: url('/fonts/katex/KaTeX_Main-Bold.woff2')         format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: KaTeX_Main;       src: url('/fonts/katex/KaTeX_Main-Italic.woff2')       format('woff2'); font-weight: 400; font-style: italic; }
+@font-face { font-family: KaTeX_Main;       src: url('/fonts/katex/KaTeX_Main-BoldItalic.woff2')   format('woff2'); font-weight: 700; font-style: italic; }
+@font-face { font-family: KaTeX_Math;       src: url('/fonts/katex/KaTeX_Math-Italic.woff2')       format('woff2'); font-weight: 400; font-style: italic; }
+@font-face { font-family: KaTeX_Math;       src: url('/fonts/katex/KaTeX_Math-BoldItalic.woff2')   format('woff2'); font-weight: 700; font-style: italic; }
+@font-face { font-family: KaTeX_AMS;        src: url('/fonts/katex/KaTeX_AMS-Regular.woff2')       format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Caligraphic; src: url('/fonts/katex/KaTeX_Caligraphic-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Caligraphic; src: url('/fonts/katex/KaTeX_Caligraphic-Bold.woff2')    format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: KaTeX_Fraktur;    src: url('/fonts/katex/KaTeX_Fraktur-Regular.woff2')   format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Fraktur;    src: url('/fonts/katex/KaTeX_Fraktur-Bold.woff2')      format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: KaTeX_SansSerif;  src: url('/fonts/katex/KaTeX_SansSerif-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_SansSerif;  src: url('/fonts/katex/KaTeX_SansSerif-Bold.woff2')    format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: KaTeX_SansSerif;  src: url('/fonts/katex/KaTeX_SansSerif-Italic.woff2')  format('woff2'); font-weight: 400; font-style: italic; }
+@font-face { font-family: KaTeX_Script;     src: url('/fonts/katex/KaTeX_Script-Regular.woff2')    format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Typewriter; src: url('/fonts/katex/KaTeX_Typewriter-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Size1;      src: url('/fonts/katex/KaTeX_Size1-Regular.woff2')     format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Size2;      src: url('/fonts/katex/KaTeX_Size2-Regular.woff2')     format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Size3;      src: url('/fonts/katex/KaTeX_Size3-Regular.woff2')     format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: KaTeX_Size4;      src: url('/fonts/katex/KaTeX_Size4-Regular.woff2')     format('woff2'); font-weight: 400; font-style: normal; }
+
+/* KaTeX theme override — force to theme text colour everywhere katex renders */
+.katex { color: var(--txt); }
+.answer-prose .katex { font-size: 1.1em; }
+.answer-prose .katex-block { overflow-x: auto; }
+
 /* Citation superscript links */
 .cite-ref {
   color: var(--green);

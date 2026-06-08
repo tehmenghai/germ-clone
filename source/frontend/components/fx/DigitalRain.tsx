@@ -41,9 +41,13 @@ export function DigitalRain() {
         length: 8 + Math.floor(Math.random() * 20),
       }));
 
-      // Pure black background on resize
-      ctx!.fillStyle = "#000";
-      ctx!.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      // Black background only in matrix mode — clinical uses transparent canvas
+      if (!isLight()) {
+        ctx!.fillStyle = "#000";
+        ctx!.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      } else {
+        ctx!.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      }
     }
 
     const isLight = () =>

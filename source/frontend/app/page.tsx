@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ViewMode, Difficulty } from "@/components/shell/Header";
 import { Header } from "@/components/shell/Header";
 import { Convo, type ConvoMessage } from "@/components/shell/Convo";
@@ -9,10 +9,9 @@ import { PipelineRail } from "@/components/pipeline/PipelineRail";
 import { MLWorkspace } from "@/components/workspace/MLWorkspace";
 import { SettingsDrawer } from "@/components/settings/SettingsDrawer";
 import { DigitalRain } from "@/components/fx/DigitalRain";
-import { RagGraphPanel } from "@/components/pipeline/RagGraphPanel";
 import { ConsoleChips } from "@/components/workspace/ConsoleChips";
 import { AnswerProse } from "@/components/workspace/AnswerProse";
-import { askStream } from "@/lib/api";
+import { askStream, getInference, setInference, type InferenceBackend } from "@/lib/api";
 import { detectActiveModules } from "@/lib/topics";
 import type { StageEvent } from "@/lib/mock-stream";
 
@@ -22,7 +21,16 @@ export default function HomePage() {
   const [difficulty, setDifficulty] = useState<Difficulty>("standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
-  const [ragPipeActive, setRagPipeActive] = useState(false);
+  const [backend, setBackend] = useState<InferenceBackend>("ollama");
+
+  useEffect(() => {
+    getInference().then((r) => setBackend(r.backend)).catch(() => {});
+  }, []);
+
+  function handleBackendChange(v: InferenceBackend) {
+    setBackend(v);
+    setInference(v).catch(() => {});
+  }
 
   // Conversation state — handoff model
   const [msgs, setMsgs] = useState<ConvoMessage[]>([]);
@@ -116,9 +124,11 @@ export default function HomePage() {
         onDifficulty={setDifficulty}
         onSettings={() => setSettingsOpen(true)}
         onHome={() => { setMsgs([]); setEvents([]); setCurrentQuery(""); setPhase("idle"); setActiveIdx(-1); setInput(""); }}
-        ragPipeActive={ragPipeActive}
-        onRagPipe={() => setRagPipeActive((v) => !v)}
+        ragPipeActive={railOpen}
+        onRagPipe={() => setRailOpen((v) => !v)}
         hasActiveTopic={hasActiveTopic}
+        backend={backend}
+        onBackendChange={handleBackendChange}
       />
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex", position: "relative" }}>
@@ -148,18 +158,13 @@ export default function HomePage() {
             onInput={setInput}
             onSubmit={handleSubmit}
             onAsk={handleAsk}
+            railOpen={railOpen}
+            onRailClose={() => setRailOpen(false)}
           />
         )}
       </div>
 
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-
-      <RagGraphPanel
-        open={ragPipeActive && hasActiveTopic}
-        onClose={() => setRagPipeActive(false)}
-        events={events}
-        activeIdx={activeIdx}
-      />
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} backend={backend} onBackendChange={handleBackendChange} />
       </>}
     </div>
   );
@@ -176,6 +181,8 @@ interface LayoutProps {
   onInput: (v: string) => void;
   onSubmit: () => void;
   onAsk: (q: string) => void;
+  railOpen?: boolean;
+  onRailClose?: () => void;
 }
 
 interface RealityProps extends LayoutProps {
@@ -190,41 +197,43 @@ function RealityLayout({
   railOpen, onRailClose, onRailOpen,
 }: RealityProps) {
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "grid",
-        gridTemplateColumns: "minmax(380px, 44fr) 56fr",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* Left — conversation column (transparent so rain shows through empty space) */}
-      <Convo
-        msgs={msgs}
-        phase={phase}
-        activeIdx={activeIdx}
-        scores={null}
-        input={input}
-        onInput={onInput}
-        onSubmit={onSubmit}
-        onAsk={onAsk}
-        onOpenTrace={onRailOpen}
-      />
-
-      {/* Right — ML workspace */}
+    <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+      {/* Two-column grid */}
       <div
         style={{
+          height: "100%",
+          display: "grid",
+          gridTemplateColumns: "minmax(380px, 65fr) 35fr",
           overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          borderLeft: "1px solid var(--line-soft)",
         }}
       >
-        <MLWorkspace query={currentQuery} />
+        {/* Left — conversation column (transparent so rain shows through empty space) */}
+        <Convo
+          msgs={msgs}
+          phase={phase}
+          activeIdx={activeIdx}
+          scores={null}
+          input={input}
+          onInput={onInput}
+          onSubmit={onSubmit}
+          onAsk={onAsk}
+          onOpenTrace={onRailOpen}
+        />
+
+        {/* Right — ML workspace */}
+        <div
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            borderLeft: "1px solid var(--line-soft)",
+          }}
+        >
+          <MLWorkspace query={currentQuery} />
+        </div>
       </div>
 
-      {/* Pipeline Rail — slide-out drawer from right */}
+      {/* Pipeline Rail — absolute overlay, outside the grid so it spans full width correctly */}
       <PipelineRail
         events={events}
         isRunning={phase === "running"}
@@ -243,12 +252,12 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const MODULES = [
-  ["3.1", "Prob/Stat"], ["3.2", "Intro ML"], ["3.3", "Supervised"],
-  ["3.4", "Sup.Adv"], ["3.5", "Unsup"], ["3.6", "TimeSeries"],
-  ["3.7", "NeuralNet"], ["3.8", "CV"], ["3.9", "NLP"], ["3.10", "NLP+"],
+  ["3.1", "Prob & Stats"], ["3.2", "Intro to ML"], ["3.3", "Supervised"],
+  ["3.4", "Supervised+"], ["3.5", "Unsupervised"], ["3.6", "Time Series"],
+  ["3.7", "Neural Networks"], ["3.8", "Computer Vision"], ["3.9", "NLP"], ["3.10", "NLP+"],
 ];
 
-function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onInput, onSubmit, onAsk }: LayoutProps) {
+function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onInput, onSubmit, onAsk, railOpen, onRailClose }: LayoutProps) {
   const composeEvent = events.find((e) => e.stage === "compose" && e.status === "done");
   const lastEval = [...events].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
   const activeModules = detectActiveModules(currentQuery);
@@ -293,8 +302,9 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
               key={id}
               style={{
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: "row",
                 alignItems: "center",
+                gap: 4,
                 padding: "3px 8px",
                 borderRadius: 7,
                 border: `1px solid ${hot ? "var(--green-deep)" : "var(--line)"}`,
@@ -302,6 +312,7 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
                 boxShadow: hot ? "var(--glow)" : "none",
                 transition: "border-color 0.2s",
                 fontSize: 9,
+                whiteSpace: "nowrap",
               }}
             >
               <span style={{ color: hot ? "var(--green)" : "var(--txt-dim)", fontWeight: 600 }}>{id}</span>
@@ -319,7 +330,7 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
         style={{
           flex: 1,
           display: "grid",
-          gridTemplateColumns: "minmax(380px, 44fr) 56fr",
+          gridTemplateColumns: "minmax(380px, 65fr) 35fr",
           overflow: "hidden",
           position: "relative",
         }}
@@ -538,6 +549,14 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
           </span>
         </div>
       )}
+
+      {/* Pipeline Rail — same overlay as Rabbit Hole mode */}
+      <PipelineRail
+        events={events}
+        isRunning={phase === "running"}
+        open={railOpen}
+        onClose={onRailClose}
+      />
     </div>
   );
 }

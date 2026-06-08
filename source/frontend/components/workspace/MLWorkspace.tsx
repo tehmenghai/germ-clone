@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { BlockMath } from "react-katex";
+import katex from "katex";
 import { VizPanel } from "@/components/viz/VizPanel";
 import { detectTopic } from "@/lib/topics";
 
 const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
   "bias-variance": [
     {
-      eq: "\\text{Error} = \\text{Bias}^2 + \\text{Variance} + \\varepsilon",
-      note: "Total generalisation error decomposition",
+      eq: "\\mathbb{E}\\!\\left[(y - \\hat{y})^2\\right] = \\underbrace{\\left(\\mathbb{E}[\\hat{y}] - y\\right)^2}_{\\text{Bias}^2} + \\underbrace{\\mathbb{E}\\!\\left[(\\hat{y} - \\mathbb{E}[\\hat{y}])^2\\right]}_{\\text{Variance}} + \\underbrace{\\sigma^2_{\\varepsilon}}_{\\text{noise}}",
+      note: "Expected squared error = irreducible bias² + variance + noise — only the first two are controllable",
     },
     {
       eq: "\\text{Bias} = \\mathbb{E}[\\hat{y}] - y",
-      note: "Systematic offset of predictions from truth",
+      note: "How far the average prediction sits from truth — a high-bias model is systematically wrong",
     },
     {
-      eq: "\\text{Variance} = \\mathbb{E}\\!\\left[(\\hat{y} - \\mathbb{E}[\\hat{y}])^2\\right]",
-      note: "Sensitivity to training-set fluctuations",
+      eq: "\\text{Var}(\\hat{y}) = \\mathbb{E}\\!\\left[\\left(\\hat{y} - \\mathbb{E}[\\hat{y}]\\right)^2\\right]",
+      note: "How much predictions scatter across different training sets — a high-variance model chases noise",
     },
   ],
   "regularization": [
@@ -36,12 +36,16 @@ const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
   ],
   "knn": [
     {
-      eq: "\\hat{y} = \\operatorname{mode}\\!\\left(\\{y_i : x_i \\in \\mathcal{N}_k(x)\\}\\right)",
-      note: "Predicted class = majority vote of k nearest neighbours",
+      eq: "d(x,\\, x_i) = \\sqrt{\\sum_{j=1}^{p}\\left(x_j - x_{ij}\\right)^2}",
+      note: "Distance from query x to training point xᵢ across p features — smaller means closer neighbour",
     },
     {
-      eq: "d(x,\\, x_i) = \\sqrt{\\sum_{j=1}^{p}(x_j - x_{ij})^2}",
-      note: "Euclidean distance (most common metric)",
+      eq: "\\mathcal{N}_k(x) = \\{x_{(1)},\\, x_{(2)},\\, \\ldots,\\, x_{(k)}\\}",
+      note: "The k nearest neighbours, ordered by distance d(x, xᵢ) — these are the only points that vote",
+    },
+    {
+      eq: "\\hat{y} = \\underset{c}{\\arg\\max} \\sum_{i=1}^{k} \\mathbf{1}\\!\\left[y_{(i)} = c\\right]",
+      note: "Predict the class c with the most votes among the k neighbours — the indicator 𝟏[·] counts matches",
     },
   ],
   "gradient-descent": [
@@ -68,8 +72,8 @@ const TOPIC_MATH: Record<string, Array<{ eq: string; note: string }>> = {
       note: "Of all actual positives, how many were caught",
     },
     {
-      eq: "F_1 = 2 \\cdot \\frac{\\text{Precision} \\cdot \\text{Recall}}{\\text{Precision} + \\text{Recall}}",
-      note: "Harmonic mean — balances precision against recall",
+      eq: "F_1 = \\frac{2\\,TP}{2\\,TP + FP + FN}",
+      note: "Harmonic mean of precision and recall — directly in terms of counts, no intermediate fractions",
     },
   ],
   "distributions": [
@@ -279,7 +283,11 @@ export function MLWorkspace({ query, compact }: MLWorkspaceProps) {
                     overflowX: "auto",
                   }}
                 >
-                  <BlockMath math={eq} />
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: katex.renderToString(eq, { displayMode: true, throwOnError: false, output: "html" }),
+                    }}
+                  />
                 </div>
                 <p
                   style={{

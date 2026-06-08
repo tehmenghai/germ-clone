@@ -12,12 +12,15 @@ from llm import config, embedding_config
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
+BackendLiteral = Literal["ollama", "groq", "cerebras", "gemini", "openrouter", "cloud"]
+
+
 class InferenceResponse(BaseModel):
-    backend: Literal["ollama", "cloud"]
+    backend: BackendLiteral
 
 
 class InferenceRequest(BaseModel):
-    backend: Literal["ollama", "cloud"]
+    backend: BackendLiteral
 
 
 class EmbeddingResponse(BaseModel):

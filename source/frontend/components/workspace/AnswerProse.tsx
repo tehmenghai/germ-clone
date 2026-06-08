@@ -1,5 +1,6 @@
 "use client";
 
+import katex from "katex";
 import type { Citation } from "@/lib/mock-stream";
 
 interface AnswerProseProps {
@@ -16,11 +17,52 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
+function renderKatex(tex: string, displayMode: boolean): string {
+  try {
+    return katex.renderToString(tex, {
+      displayMode,
+      throwOnError: false,
+      output: "html",
+    });
+  } catch {
+    return escapeHtml(displayMode ? `$$${tex}$$` : `$${tex}$`);
+  }
+}
+
+/**
+ * Splits markdown into segments: plain text, inline math, and block math.
+ * Accepts both $...$  / $$...$$ and \(...\) / \[...\] delimiter styles
+ * since LLMs produce both regardless of prompt instructions.
+ */
+function renderMarkdownWithMath(md: string, citationIds: number[]): string {
+  // Order matters: match longer/display forms before inline forms.
+  const parts = md.split(
+    /((?:\$\$[\s\S]*?\$\$)|(?:\\\[[\s\S]*?\\\])|(?:\\\([\s\S]*?\\\))|(?:\$[^$\n]+?\$))/g,
+  );
+
+  const segments = parts.map((part) => {
+    if (
+      (part.startsWith("$$") && part.endsWith("$$") && part.length > 4) ||
+      (part.startsWith("\\[") && part.endsWith("\\]") && part.length > 4)
+    ) {
+      const tex = part.startsWith("$$") ? part.slice(2, -2).trim() : part.slice(2, -2).trim();
+      return `<span class="katex-block" style="display:block;text-align:center;margin:12px 0;">${renderKatex(tex, true)}</span>`;
+    }
+    if (
+      (part.startsWith("$") && part.endsWith("$") && part.length > 2) ||
+      (part.startsWith("\\(") && part.endsWith("\\)") && part.length > 4)
+    ) {
+      const tex = part.startsWith("$") ? part.slice(1, -1).trim() : part.slice(2, -2).trim();
+      return renderKatex(tex, false);
+    }
+    // Plain markdown segment — escape then apply formatting
+    return renderMarkdown(part, citationIds);
+  });
+
+  return segments.join("");
+}
+
 function renderMarkdown(md: string, citationIds: number[]): string {
-  // Escape first — answer text is LLM- and corpus-derived (untrusted). Without this,
-  // any raw <tag> in the model output or a retrieved chunk would inject into the DOM
-  // (e.g. <img src=x onerror=…>). All markdown substitutions below run on escaped text;
-  // the tags we emit are our own literals, so they survive.
   let html = escapeHtml(md)
     .replace(/^## (.+)$/gm, '<h2 class="answer-h2">$1</h2>')
     .replace(/^### (.+)$/gm, '<h3 class="answer-h3">$1</h3>')
@@ -31,7 +73,6 @@ function renderMarkdown(md: string, citationIds: number[]): string {
     .replace(/^/, "<p>")
     .replace(/$/, "</p>");
 
-  // Inject citation superscripts [N] → <sup> anchor linking to source card
   for (const id of citationIds) {
     html = html.replace(
       new RegExp(`\\[${id}\\]`, "g"),
@@ -41,9 +82,8 @@ function renderMarkdown(md: string, citationIds: number[]): string {
   return html;
 }
 
-
 export function AnswerProse({ markdown, citations, citeHot, onCiteHover }: AnswerProseProps) {
-  const html = renderMarkdown(markdown, citations.map((c) => c.id));
+  const html = renderMarkdownWithMath(markdown, citations.map((c) => c.id));
 
   return (
     <div

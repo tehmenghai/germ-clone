@@ -29,6 +29,30 @@ async def test_set_inference_cloud():
     assert get.json() == {"backend": "cloud"}
 
 
+async def test_set_inference_cerebras():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        post = await client.post("/settings/inference", json={"backend": "cerebras"})
+        assert post.status_code == 200
+        get = await client.get("/settings/inference")
+    assert get.json() == {"backend": "cerebras"}
+
+
+async def test_set_inference_gemini():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        post = await client.post("/settings/inference", json={"backend": "gemini"})
+        assert post.status_code == 200
+        get = await client.get("/settings/inference")
+    assert get.json() == {"backend": "gemini"}
+
+
+async def test_set_inference_openrouter():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        post = await client.post("/settings/inference", json={"backend": "openrouter"})
+        assert post.status_code == 200
+        get = await client.get("/settings/inference")
+    assert get.json() == {"backend": "openrouter"}
+
+
 async def test_set_inference_invalid():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post("/settings/inference", json={"backend": "openai"})

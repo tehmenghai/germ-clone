@@ -102,7 +102,7 @@ export function Convo({
             )
           )}
 
-          {phase === "running" && <Thinking activeIdx={activeIdx} />}
+          {phase === "running" && <Thinking activeIdx={activeIdx} onOpenTrace={onOpenTrace} />}
         </div>
       </div>
 

@@ -90,13 +90,11 @@ test.describe("Header", () => {
     await expect(page.getByText("LLM BACKEND")).toBeVisible();
   });
 
-  test("honours saved theme preference (data-theme attribute)", async ({ page }) => {
-    // The *default* theme is time-of-day based (clinical 07:00–19:00 local, else matrix),
-    // so asserting a fixed default is clock-flaky. Seed a saved preference and assert it
-    // is honoured — that is the behaviour we actually care about.
-    await page.addInitScript(() => localStorage.setItem("gc-theme", "matrix"));
+  test("applies time-of-day theme on load (clinical 07–19 SGT, matrix otherwise)", async ({ page }) => {
+    const sgHour = (new Date().getUTCHours() + 8) % 24;
+    const expected = sgHour >= 7 && sgHour < 19 ? "clinical" : "matrix";
     await enterApp(page);
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "matrix");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", expected);
   });
 });
 

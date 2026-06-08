@@ -13,7 +13,8 @@ _state: dict[str, str] = {
     "backend": os.getenv("INFERENCE_BACKEND", "ollama"),
 }
 
-VALID_BACKENDS = {"ollama", "cloud"}
+VALID_BACKENDS = {"ollama", "groq", "cerebras", "gemini", "openrouter", "cloud"}
+# "cloud" is a legacy alias for "groq" — kept so existing .env values still work
 
 
 def get_backend() -> str:

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-
-type InferenceBackend = "ollama" | "cloud";
+import type { InferenceBackend } from "@/lib/api";
 
 interface SettingsDrawerProps {
   open: boolean;
   onClose: () => void;
+  backend: InferenceBackend;
+  onBackendChange: (v: InferenceBackend) => void;
 }
 
-export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
+export function SettingsDrawer({ open, onClose, backend, onBackendChange }: SettingsDrawerProps) {
   if (!open) return null;
 
   return (
@@ -79,19 +79,17 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         </h2>
         <div style={{ marginBottom: 22 }} />
 
-        <DrawerBody />
+        <DrawerBody backend={backend} onBackendChange={onBackendChange} />
       </aside>
     </>
   );
 }
 
-function DrawerBody() {
-  const [backend, setBackend] = useState<InferenceBackend>("ollama");
-
+function DrawerBody({ backend, onBackendChange }: { backend: InferenceBackend; onBackendChange: (v: InferenceBackend) => void }) {
   return (
     <>
       <DGroup title="LLM BACKEND">
-        <InferenceToggle value={backend} onChange={setBackend} />
+        <InferenceToggle value={backend} onChange={onBackendChange} />
       </DGroup>
       <DGroup title="CORPUS">
         <CorpusManager />
@@ -120,11 +118,32 @@ const BACKENDS: Array<{ value: InferenceBackend; label: string; name: string; de
     badges: [["private", "g"], ["free", "g"], ["~8B", ""]],
   },
   {
-    value: "cloud",
-    label: "Free cloud",
-    name: "Groq / Together",
-    desc: "Routes to a free-tier cloud provider. Fast, no API key needed.",
+    value: "groq",
+    label: "Groq",
+    name: "llama-3.1-8b-instant",
+    desc: "Free-tier Groq cloud inference. Very fast throughput.",
     badges: [["cloud", ""], ["free-tier", "g"], ["fast", "g"]],
+  },
+  {
+    value: "cerebras",
+    label: "Cerebras",
+    name: "gpt-oss-120b",
+    desc: "Cerebras wafer-scale inference — 120B reasoning model on their free tier.",
+    badges: [["cloud", ""], ["free-tier", "g"], ["120B", ""]],
+  },
+  {
+    value: "gemini",
+    label: "Gemini",
+    name: "gemini-2.0-flash",
+    desc: "Google Gemini 2.0 Flash via free API key.",
+    badges: [["cloud", ""], ["free-tier", "g"], ["multimodal", ""]],
+  },
+  {
+    value: "openrouter",
+    label: "OpenRouter",
+    name: "nemotron-120b:free",
+    desc: "OpenRouter free-tier — Nvidia Nemotron 120B, 1M context, zero cost.",
+    badges: [["cloud", ""], ["free", "g"], ["multi-provider", ""]],
   },
 ];
 

@@ -6,8 +6,10 @@ interface Props {
   interactive?: boolean;
 }
 
+// Logical drawing dimensions — canvas backing store is scaled by DPR for sharpness
 const W = 480;
 const H = 280;
+const ASPECT = H / W;
 const PAD = { top: 28, right: 24, bottom: 48, left: 52 };
 const IW = W - PAD.left - PAD.right;
 const IH = H - PAD.top - PAD.bottom;
@@ -83,6 +85,7 @@ const VARIANT_COLORS: Record<Variant, string> = {
 
 export function GradDescViz({ interactive = true }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [lr, setLr] = useState(0.12);
   const [variant, setVariant] = useState<Variant>("adam");
   const [step, setStep] = useState(0);
@@ -99,6 +102,18 @@ export function GradDescViz({ interactive = true }: Props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // Apply DPR scaling so the canvas is crisp on HiDPI displays.
+    // The backing store is sized to cssW*dpr × cssH*dpr; we scale the
+    // context so all draw calls use the same logical W×H coordinates.
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth || W;
+    const cssH = Math.round(cssW * ASPECT);
+    if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+    }
+    ctx.setTransform(dpr * cssW / W, 0, 0, dpr * cssH / H, 0, 0);
 
     const style = getComputedStyle(document.documentElement);
     const panelColor = style.getPropertyValue("--panel").trim() || "#1e2b1e";
@@ -221,6 +236,15 @@ export function GradDescViz({ interactive = true }: Props) {
 
   useEffect(() => { draw(); }, [draw]);
 
+  // Redraw on container resize so DPR scaling stays correct
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [draw]);
+
   function startStop() {
     if (running) {
       clearInterval(timerRef.current!);
@@ -268,11 +292,13 @@ export function GradDescViz({ interactive = true }: Props) {
         </div>
       )}
 
-      <canvas ref={canvasRef} width={W} height={H}
-        style={{ width: "100%", height: "auto", display: "block", borderRadius: "var(--r-sm)" }}
-        aria-label="Gradient descent optimiser visualisation"
-        role="img"
-      />
+      <div ref={containerRef} style={{ width: "100%" }}>
+        <canvas ref={canvasRef}
+          style={{ width: "100%", height: "auto", display: "block", borderRadius: "var(--r-sm)" }}
+          aria-label="Gradient descent optimiser visualisation"
+          role="img"
+        />
+      </div>
 
       {interactive && (
         <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>

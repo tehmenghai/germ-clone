@@ -1,7 +1,7 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8007";
 
 export type Difficulty = "eli5" | "standard" | "academia";
-export type InferenceBackend = "ollama" | "cloud";
+export type InferenceBackend = "ollama" | "groq" | "cerebras" | "gemini" | "openrouter" | "cloud";
 
 export interface Profile {
   id: string;
