@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Inline script runs synchronously before first paint — prevents theme flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var h=(new Date().getUTCHours()+8)%24;document.documentElement.setAttribute('data-theme',h>=7&&h<19?'clinical':'matrix');}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('gc-theme');if(s==='matrix'||s==='clinical'){document.documentElement.setAttribute('data-theme',s);}else{var h=(new Date().getUTCHours()+8)%24;document.documentElement.setAttribute('data-theme',h>=7&&h<19?'clinical':'matrix');}}catch(e){}})();`,
           }}
         />
       </head>

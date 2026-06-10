@@ -1,31 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getProfiles, createProfile, type Profile } from "@/lib/api";
 
-export interface Profile {
-  id: string;
-  name: string;
-}
+export type { Profile };
 
 interface ProfilePickerProps {
   onSelect: (profile: Profile) => void;
 }
 
-const DEMO_PROFILES: Profile[] = [
-  { id: "1", name: "Neo" },
-  { id: "2", name: "Morpheus" },
-  { id: "3", name: "Trinity" },
-];
-
 export function ProfilePicker({ onSelect }: ProfilePickerProps) {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [newName, setNewName] = useState("");
-  const [profiles] = useState<Profile[]>(DEMO_PROFILES);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleAdd() {
+  useEffect(() => {
+    getProfiles()
+      .then(setProfiles)
+      .catch(() => setError("Could not load profiles."));
+  }, []);
+
+  async function handleAdd() {
     const name = newName.trim();
-    if (!name) return;
-    const profile: Profile = { id: Date.now().toString(), name };
-    onSelect(profile);
+    if (!name || creating) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const profile = await createProfile(name);
+      setProfiles((prev) => [...prev, profile]);
+      onSelect(profile);
+    } catch {
+      setError("Failed to create profile.");
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -77,7 +86,16 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
               {p.name}
             </button>
           ))}
+          {profiles.length === 0 && !error && (
+            <p className="font-mono" style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)" }}>
+              No profiles yet — create one below.
+            </p>
+          )}
         </div>
+
+        {error && (
+          <p className="font-mono" style={{ fontSize: 11, color: "var(--red, #e05555)" }}>{error}</p>
+        )}
 
         <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16 }}>
           <p className="font-mono mb-2" style={{ fontSize: "var(--font-label)", color: "var(--txt-faint)" }}>
@@ -89,6 +107,7 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               placeholder="Name"
+              aria-label="New profile name"
               className="font-mono flex-1"
               style={{
                 padding: "8px 12px",
@@ -102,6 +121,7 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
             />
             <button
               onClick={handleAdd}
+              disabled={creating || !newName.trim()}
               className="font-mono font-semibold"
               style={{
                 padding: "8px 16px",
@@ -110,10 +130,11 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
                 background: "var(--green)",
                 color: "var(--on-green)",
                 fontSize: "var(--font-base)",
-                cursor: "pointer",
+                cursor: creating || !newName.trim() ? "not-allowed" : "pointer",
+                opacity: creating || !newName.trim() ? 0.55 : 1,
               }}
             >
-              Go
+              {creating ? "…" : "Go"}
             </button>
           </div>
         </div>

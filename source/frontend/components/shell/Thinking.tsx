@@ -24,6 +24,9 @@ export function Thinking({ activeIdx, onOpenTrace }: ThinkingProps) {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-label={stage ? `${stage.name} in progress` : "Thinking"}
       style={{
         display: "flex",
         alignItems: "center",

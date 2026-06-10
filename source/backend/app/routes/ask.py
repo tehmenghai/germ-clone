@@ -70,22 +70,26 @@ async def ask(
             finally:
                 await event_queue.put(("done", None))
 
-        asyncio.create_task(_run_graph())
+        graph_task = asyncio.create_task(_run_graph())
 
-        while True:
-            kind, payload = await event_queue.get()
+        try:
+            while True:
+                kind, payload = await event_queue.get()
 
-            if kind == "done":
-                break
-            elif kind == "event":
-                yield await emit_event(payload)
-            elif kind == "token":
-                yield await emit_event(
-                    StageEvent(stage="compose", status="active", token=payload)
-                )
-            elif kind == "error":
-                err = StageEvent(stage="compose", status="error", detail=payload)
-                yield f"data: {json.dumps(err.model_dump(exclude_none=True))}\n\n"
+                if kind == "done":
+                    break
+                elif kind == "event":
+                    yield await emit_event(payload)
+                elif kind == "token":
+                    yield await emit_event(
+                        StageEvent(stage="compose", status="active", token=payload)
+                    )
+                elif kind == "error":
+                    err = StageEvent(stage="compose", status="error", detail=payload)
+                    yield f"data: {json.dumps(err.model_dump(exclude_none=True))}\n\n"
+        finally:
+            if not graph_task.done():
+                graph_task.cancel()
 
     return StreamingResponse(
         _stream(),

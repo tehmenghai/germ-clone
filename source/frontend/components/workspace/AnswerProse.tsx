@@ -62,16 +62,109 @@ function renderMarkdownWithMath(md: string, citationIds: number[]): string {
   return segments.join("");
 }
 
+function renderTable(header: string, separator: string, rows: string[]): string {
+  const cols = header.split("|").map((c) => c.trim()).filter(Boolean);
+  const aligns = separator.split("|").map((c) => c.trim()).filter(Boolean).map((c) => {
+    if (c.startsWith(":") && c.endsWith(":")) return "center";
+    if (c.endsWith(":")) return "right";
+    return "left";
+  });
+  const th = cols.map((c, i) => `<th style="text-align:${aligns[i] ?? "left"}">${c}</th>`).join("");
+  const tbody = rows.map((row) => {
+    const cells = row.split("|").map((c) => c.trim()).filter(Boolean);
+    return "<tr>" + cells.map((c, i) => `<td style="text-align:${aligns[i] ?? "left"}">${c}</td>`).join("") + "</tr>";
+  }).join("");
+  return `<table class="answer-table"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table>`;
+}
+
 function renderMarkdown(md: string, citationIds: number[]): string {
-  let html = escapeHtml(md)
-    .replace(/^## (.+)$/gm, '<h2 class="answer-h2">$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3 class="answer-h3">$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/^/, "<p>")
-    .replace(/$/, "</p>");
+  // Apply inline formatting to a string (no block-level elements)
+  function inlineFmt(s: string): string {
+    return s
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/`(.+?)`/g, "<code>$1</code>");
+  }
+
+  const lines = md.split("\n");
+  const output: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Table: header | separator | rows
+    if (i + 1 < lines.length && /^\|.*\|/.test(line) && /^\|[-:| ]+\|/.test(lines[i + 1])) {
+      const tableLines: string[] = [line];
+      const sepLine = lines[i + 1];
+      i += 2;
+      while (i < lines.length && /^\|.*\|/.test(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      output.push(renderTable(tableLines[0], sepLine, tableLines.slice(1)));
+      continue;
+    }
+
+    // Unordered list block
+    if (/^[-*] /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        items.push(`<li>${inlineFmt(escapeHtml(lines[i].replace(/^[-*] /, "")))}</li>`);
+        i++;
+      }
+      output.push(`<ul class="answer-list">${items.join("")}</ul>`);
+      continue;
+    }
+
+    // Ordered list block
+    if (/^\d+\. /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(`<li>${inlineFmt(escapeHtml(lines[i].replace(/^\d+\. /, "")))}</li>`);
+        i++;
+      }
+      output.push(`<ol class="answer-list">${items.join("")}</ol>`);
+      continue;
+    }
+
+    // Headings
+    if (/^## /.test(line)) {
+      output.push(`<h2 class="answer-h2">${inlineFmt(escapeHtml(line.slice(3)))}</h2>`);
+      i++;
+      continue;
+    }
+    if (/^### /.test(line)) {
+      output.push(`<h3 class="answer-h3">${inlineFmt(escapeHtml(line.slice(4)))}</h3>`);
+      i++;
+      continue;
+    }
+
+    // Blank line — paragraph break
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
+
+    // Paragraph: accumulate consecutive non-special lines
+    const paraLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !/^[-*] /.test(lines[i]) &&
+      !/^\d+\. /.test(lines[i]) &&
+      !/^##/.test(lines[i]) &&
+      !(/^\|.*\|/.test(lines[i]) && i + 1 < lines.length && /^\|[-:| ]+\|/.test(lines[i + 1]))
+    ) {
+      paraLines.push(inlineFmt(escapeHtml(lines[i])));
+      i++;
+    }
+    if (paraLines.length) {
+      output.push(`<p>${paraLines.join(" ")}</p>`);
+    }
+  }
+
+  let html = output.join("\n");
 
   for (const id of citationIds) {
     html = html.replace(

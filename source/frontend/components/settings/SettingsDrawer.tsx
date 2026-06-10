@@ -115,7 +115,7 @@ const BACKENDS: Array<{ value: InferenceBackend; label: string; name: string; de
     label: "Ollama · local",
     name: "llama3.2",
     desc: "Runs fully on your machine. Nothing leaves the device — ideal for course notes.",
-    badges: [["private", "g"], ["free", "g"], ["~8B", ""]],
+    badges: [["private", "g"], ["free", "g"], ["~3B", ""]],
   },
   {
     value: "groq",
@@ -211,7 +211,7 @@ function InferenceToggle({ value, onChange }: { value: InferenceBackend; onChang
         );
       })}
       <p style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: "var(--txt-faint)", marginTop: 2 }}>
-        Wires to <code style={{ color: "var(--cyan)" }}>POST /settings/inference</code> once engine is ready.
+        Selection POSTs to <code style={{ color: "var(--cyan)" }}>POST /settings/inference</code> and takes effect immediately.
       </p>
     </div>
   );

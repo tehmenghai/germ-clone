@@ -70,7 +70,7 @@ async def complete(messages: list[dict[str, str]], **kwargs: Any) -> str:
         )
 
     msg = response.choices[0].message
-    return msg.content or getattr(msg, "reasoning_content", None) or ""
+    return msg.content or ""
 
 
 async def astream_complete(
@@ -98,6 +98,6 @@ async def astream_complete(
 
     async for chunk in response:
         delta = chunk.choices[0].delta
-        token = delta.content or getattr(delta, "reasoning_content", None) or ""
+        token = delta.content or ""
         if token:
             yield token

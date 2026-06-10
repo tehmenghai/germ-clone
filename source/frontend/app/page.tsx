@@ -321,7 +321,7 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
           );
         })}
         <span style={{ marginLeft: "auto", fontSize: 9.5, color: "var(--txt-faint)", whiteSpace: "nowrap" }}>
-          142 hrs transcripts · 4 textbooks · 38 notebooks indexed
+          seed corpus · modules 3.1–3.10 indexed
         </span>
       </div>
 
@@ -335,13 +335,16 @@ function MatrixLayout({ msgs, phase, activeIdx, events, currentQuery, input, onI
           position: "relative",
         }}
       >
-        {/* Left — terminal (transparent; rain shows through empty space) */}
+        {/* Left — terminal */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             borderRight: "1px solid var(--line-soft)",
+            background: "color-mix(in oklab, var(--bg) 82%, transparent)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
           }}
         >
           {/* Terminal scroll */}
