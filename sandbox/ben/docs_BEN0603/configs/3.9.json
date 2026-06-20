@@ -1,0 +1,18 @@
+{
+  "module": "3.9",
+  "source_file": "3.9 - NLP_Recording.transcript.vtt",
+  "lesson_title": "Natural Language Processing (NLP)",
+  "vtt_relative": "data_BEN0601/raw_BEN0601/3.9 - NLP_Recording.transcript.vtt",
+  "slide_md_relatives": [
+    "data_BEN0601/marker_output_BEN0601/3.9 - NLP/3.9 - NLP.md"
+  ],
+  "agent_skill_relative": "sandbox/ben/docs_BEN0603/AGENT_SKILL_TRANSCRIPT_BEN0603_3.9.md",
+  "parsed_output_relative": "data_BEN0603/parsed_vtt_3.9_BEN0603.jsonl",
+  "chunks_output_relative": "data_BEN0603/chunks_transcript_3.9_BEN0603.jsonl",
+  "sample_output_relative": "data_BEN0603/sample_chunks_transcript_3.9_BEN0603.jsonl",
+  "lecture_start_sec": 1261.0,
+  "teaching_speakers": ["germayne", "Soon | NTU"],
+  "notebook_periods": [
+    [3277, 9862]
+  ]
+}

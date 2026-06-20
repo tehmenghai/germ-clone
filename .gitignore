@@ -61,6 +61,14 @@ data_BEN0603/parsed_vtt_*.jsonl
 # Keep samples for teammate inspection
 !data_BEN0603/sample_chunks_transcript_BEN0603.jsonl
 !data_BEN0603/sample_chunks_transcript_3.2a_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.3_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.4_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.5_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.6_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.7_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.8_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.9_BEN0603.jsonl
+!data_BEN0603/sample_chunks_transcript_3.10_BEN0603.jsonl
 
 # Sandbox — all developer sandboxes ignored; not for tracking
 sandbox/
