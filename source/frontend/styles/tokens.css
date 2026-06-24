@@ -26,9 +26,9 @@
   --pill-blue-bg:oklch(0.235 0.05 255);
   --on-pill-blue:oklch(0.96 0.02 255);
   --on-green:    #04130b;
-  --icon-stroke: #00e050;
-  --icon-hair:   #00e050;
-  --icon-lens-fill: oklch(0.88 0.21 150 / 0.10);
+  --icon-stroke: #00b840;
+  --icon-hair:   #00b840;
+  --icon-lens-fill: oklch(0.75 0.21 150 / 0.10);
   /* glass (Blue Pill / Matrix terminal) */
   --glass-bg:    color-mix(in oklab, var(--bg) 78%, transparent);
   --glass-blur:  14px;

@@ -108,7 +108,21 @@ export function AnswerBlock({ answerMd, citations, scores, note, onOpenTrace }: 
         </div>
 
         {/* Prose body */}
-        <div style={{ padding: "16px 18px 12px" }}>
+        <div
+          style={{ padding: "16px 18px 12px" }}
+          onClick={(e) => {
+            const a = (e.target as HTMLElement).closest("a.cite-ref");
+            if (!a) return;
+            e.preventDefault();
+            const targetId = (a as HTMLAnchorElement).getAttribute("href")?.slice(1);
+            if (!targetId) return;
+            setSrcOpen(true);
+            // Scroll after the panel renders
+            setTimeout(() => {
+              document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }, 50);
+          }}
+        >
           <AnswerProse
             markdown={answerMd}
             citations={citations}
