@@ -2,7 +2,7 @@
 
 import { type Theme, getTheme, setTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
-import { type InferenceBackend } from "@/lib/api";
+import { type InferenceBackend, type PipelineMode } from "@/lib/api";
 
 export type ViewMode = "reading" | "console";
 export type Difficulty = "eli5" | "standard" | "academia";
@@ -19,9 +19,11 @@ interface HeaderProps {
   hasActiveTopic?: boolean;
   backend: InferenceBackend;
   onBackendChange: (v: InferenceBackend) => void;
+  pipelineMode: PipelineMode;
+  onPipelineModeChange: (v: PipelineMode) => void;
 }
 
-export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, onHome, ragPipeActive, onRagPipe, hasActiveTopic, backend, onBackendChange }: HeaderProps) {
+export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSettings, onHome, ragPipeActive, onRagPipe, hasActiveTopic, backend, onBackendChange, pipelineMode, onPipelineModeChange }: HeaderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === "undefined") return "matrix";
     return (document.documentElement.getAttribute("data-theme") as Theme) ?? getTheme();
@@ -65,7 +67,7 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
         onMouseEnter={(e) => { if (onHome) (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
       >
-        {/* Neo face logo — theme-invariant, matches browser favicon */}
+        {/* Neo face logo — theme-adaptive via CSS vars */}
         <svg
           aria-hidden
           width="34"
@@ -76,20 +78,60 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
           style={{ flexShrink: 0, border: "1px solid var(--line)", borderRadius: 7 }}
         >
           <rect width="32" height="32" rx="7" fill="var(--panel)"/>
-          {/* Head — organic irregular beziers, sketch-like */}
-          <path d="M16 4.8 C13.1 4.6 10.3 6.2 9.3 8.7 C8.5 10.7 8.7 12.4 8.1 14.6 C7.6 16.8 7.9 18.6 9.3 20.2 C10.6 21.7 12.1 23.0 13.2 24.6 C14.1 25.8 14.9 26.7 16 26.9 C17.1 26.7 17.9 25.9 18.8 24.7 C19.9 23.2 21.5 21.8 22.7 20.3 C24.1 18.6 24.4 16.9 23.9 14.7 C23.4 12.5 23.5 10.8 22.7 8.8 C21.7 6.3 18.9 4.9 16 4.8Z" stroke="#00e050" strokeWidth="1.05" strokeLinejoin="round" opacity={0.88}/>
-          {/* Nose hint */}
-          <path d="M15.6 16.8 Q16 17.4 16.4 16.9" stroke="#00e050" strokeWidth="0.65" strokeLinecap="round" opacity={0.45}/>
-          {/* Left lens — slightly irregular */}
-          <path d="M8.8 13.2 Q9.2 11.9 10.7 11.8 L14.4 11.75 Q15.1 11.85 15.3 12.7 L15.25 14.85 Q15.05 15.65 14.3 15.7 L10.5 15.65 Q9.1 15.5 8.7 14.4 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
+
+          {/* ── Face — narrow tall oval, tapered jaw ── */}
+          <path
+            d="M16 8.0
+               C14.2 7.8 12.2 8.9 11.2 10.6
+               C10.4 12.0 10.5 13.4 10.2 15.2
+               C9.9 17.2 10.2 19.0 11.2 20.4
+               C12.2 21.8 13.2 22.6 14.0 23.5
+               C14.8 24.3 15.4 24.7 16 24.8
+               C16.6 24.7 17.2 24.3 18.0 23.5
+               C18.8 22.6 19.8 21.8 20.8 20.4
+               C21.8 19.0 22.1 17.2 21.8 15.2
+               C21.5 13.4 21.6 12.0 20.8 10.6
+               C19.8 8.9 17.8 7.8 16 8.0Z"
+            stroke="var(--icon-stroke)" strokeWidth="0.85" strokeLinejoin="round" opacity={0.80}
+          />
+
+          {/* ── Slicked-back hair — solid dark cap over top third, hairline low on sides ── */}
+          <path
+            d="M11.0 10.4
+               C11.0 8.2 13.0 5.2 16 5.0
+               C19.0 5.2 21.0 8.2 21.0 10.4
+               C19.8 9.9 18.0 9.5 16 9.5
+               C14.0 9.5 12.2 9.9 11.0 10.4Z"
+            fill="var(--icon-hair)" opacity={1}
+          />
+          {/* Slick strands — fine lines converging back from temples */}
+          <path d="M11.2 10.0 C12.2 7.5 13.8 5.8 16 5.5" stroke="var(--icon-hair)" strokeWidth="0.5" strokeLinecap="round" opacity={0.45}/>
+          <path d="M12.0 9.6 C13.2 7.2 14.6 5.6 16 5.3" stroke="var(--icon-hair)" strokeWidth="0.4" strokeLinecap="round" opacity={0.30}/>
+          <path d="M20.8 10.0 C19.8 7.5 18.2 5.8 16 5.5" stroke="var(--icon-hair)" strokeWidth="0.5" strokeLinecap="round" opacity={0.45}/>
+          <path d="M20.0 9.6 C18.8 7.2 17.4 5.6 16 5.3" stroke="var(--icon-hair)" strokeWidth="0.4" strokeLinecap="round" opacity={0.30}/>
+
+          {/* ── Nose hint — lower on face ── */}
+          <path d="M15.6 19.2 Q16 19.8 16.4 19.2" stroke="var(--icon-stroke)" strokeWidth="0.5" strokeLinecap="round" opacity={0.30}/>
+
+          {/* ── Sunglasses — narrow horizontal ovals, sit at ~40% face height, very dark ── */}
+          {/* Left lens */}
+          <path
+            d="M9.8 13.8 C9.9 12.7 10.7 12.2 11.8 12.2 L14.8 12.2 C15.4 12.3 15.6 12.8 15.6 13.4 L15.6 14.6 C15.5 15.3 15.0 15.5 14.3 15.5 L11.4 15.5 C10.3 15.4 9.7 14.8 9.8 13.8Z"
+            fill="var(--icon-lens-fill)" stroke="var(--icon-stroke)" strokeWidth="0.65"
+          />
           {/* Right lens */}
-          <path d="M23.2 13.3 Q22.8 12.0 21.3 11.85 L17.6 11.8 Q16.9 11.9 16.7 12.75 L16.75 14.9 Q16.95 15.7 17.7 15.75 L21.5 15.7 Q22.9 15.55 23.3 14.45 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
-          {/* Bridge — slight curve */}
-          <path d="M15.3 13.6 Q16 13.3 16.7 13.6" stroke="#00e050" strokeWidth="0.85" strokeLinecap="round"/>
-          {/* Temple left */}
-          <path d="M8.8 13.5 C8.1 13.7 7.4 14.1 6.9 14.4" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
-          {/* Temple right */}
-          <path d="M23.2 13.6 C23.9 13.8 24.6 14.2 25.1 14.5" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
+          <path
+            d="M22.2 13.8 C22.1 12.7 21.3 12.2 20.2 12.2 L17.2 12.2 C16.6 12.3 16.4 12.8 16.4 13.4 L16.4 14.6 C16.5 15.3 17.0 15.5 17.7 15.5 L20.6 15.5 C21.7 15.4 22.3 14.8 22.2 13.8Z"
+            fill="var(--icon-lens-fill)" stroke="var(--icon-stroke)" strokeWidth="0.65"
+          />
+          {/* Lens shine — subtle highlight upper portion */}
+          <path d="M10.6 12.7 C11.4 12.3 12.6 12.2 13.8 12.3" stroke="var(--icon-lens-shine)" strokeWidth="0.6" strokeLinecap="round" opacity={0.85}/>
+          <path d="M17.4 12.7 C18.2 12.3 19.4 12.2 20.6 12.3" stroke="var(--icon-lens-shine)" strokeWidth="0.6" strokeLinecap="round" opacity={0.85}/>
+          {/* Bridge — very short, close to nose */}
+          <path d="M15.6 13.9 L16.4 13.9" stroke="var(--icon-stroke)" strokeWidth="0.55" strokeLinecap="round"/>
+          {/* Temples — horizontal wire to ears */}
+          <path d="M9.8 13.8 L6.8 13.8" stroke="var(--icon-stroke)" strokeWidth="0.55" strokeLinecap="round"/>
+          <path d="M22.2 13.8 L25.2 13.8" stroke="var(--icon-stroke)" strokeWidth="0.55" strokeLinecap="round"/>
         </svg>
         <div>
           <div
@@ -146,6 +188,9 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
 
         {/* LLM pill — click to switch backend */}
         <ModelPill backend={backend} onBackendChange={onBackendChange} />
+
+        {/* Pipeline orchestrator pill */}
+        <PipelinePill mode={pipelineMode} onChange={onPipelineModeChange} />
 
         {/* Theme toggle */}
         <IconButton
@@ -428,6 +473,126 @@ function ModelPill({ backend, onBackendChange }: { backend: InferenceBackend; on
                   <span style={{ fontWeight: 600, color: active ? "var(--green)" : "var(--txt)" }}>{m.label}</span>
                   <span style={{ color: "var(--txt-faint)", fontSize: 10, marginLeft: 6 }}>· {m.model}</span>
                 </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PipelinePill({ mode, onChange }: { mode: PipelineMode; onChange: (v: PipelineMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [open]);
+
+  const isLangflow = mode === "langflow";
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Switch pipeline orchestrator"
+        title="Switch pipeline orchestrator"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11,
+          border: `1px solid ${isLangflow ? "var(--amber)" : open ? "var(--green-deep)" : "var(--line)"}`,
+          borderRadius: 999,
+          padding: "7px 12px",
+          background: isLangflow
+            ? "color-mix(in oklab, var(--amber) 12%, var(--panel))"
+            : open ? "color-mix(in oklab, var(--green-deep) 15%, var(--panel))" : "var(--panel)",
+          color: isLangflow ? "var(--amber)" : "var(--txt-dim)",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono, monospace)",
+          transition: "background 0.15s, border-color 0.15s, color 0.15s",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ fontSize: 10 }}>{isLangflow ? "⬡" : "⬡"}</span>
+        <span style={{ fontWeight: 600, color: isLangflow ? "var(--amber)" : "var(--txt)" }}>
+          {isLangflow ? "Langflow" : "LangGraph"}
+        </span>
+        <span style={{ color: "var(--txt-faint)", fontSize: 10 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            background: "var(--bg)",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            overflow: "hidden",
+            zIndex: 50,
+            minWidth: 220,
+            boxShadow: "0 8px 24px oklch(0 0 0 / 0.4)",
+            animation: "fadein 0.15s",
+          }}
+        >
+          {(["langgraph", "langflow"] as PipelineMode[]).map((v) => {
+            const active = mode === v;
+            const isLf = v === "langflow";
+            return (
+              <button
+                key={v}
+                onClick={() => { onChange(v); setOpen(false); }}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "none",
+                  borderBottom: "1px solid var(--line-soft)",
+                  background: active
+                    ? isLf
+                      ? "color-mix(in oklab, var(--amber) 8%, var(--panel))"
+                      : "color-mix(in oklab, var(--green) 8%, var(--panel))"
+                    : "transparent",
+                  color: active ? "var(--txt)" : "var(--txt-dim)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontFamily: "var(--font-mono, monospace)",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0, marginTop: 4,
+                  background: active ? (isLf ? "var(--amber)" : "var(--green)") : "var(--line)",
+                  boxShadow: active ? (isLf ? "0 0 6px var(--amber)" : "var(--glow)") : "none",
+                }} />
+                <div>
+                  <div style={{ fontWeight: 600, color: active ? (isLf ? "var(--amber)" : "var(--green)") : "var(--txt)" }}>
+                    {isLf ? "Langflow" : "LangGraph"}
+                    {isLf && (
+                      <span style={{
+                        marginLeft: 8, fontSize: 9, letterSpacing: "0.5px", textTransform: "uppercase",
+                        border: "1px solid var(--amber)", borderRadius: 999, padding: "1px 6px",
+                        color: "var(--amber)", verticalAlign: "middle",
+                      }}>
+                        WIP
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--txt-faint)", marginTop: 2 }}>
+                    {isLf ? "Langflow sketchpad — Lanson's design WIP; not on the live request path" : "LangGraph runtime — default production orchestrator"}
+                  </div>
+                </div>
               </button>
             );
           })}

@@ -1,60 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="7" fill="#050f07"/>
+  <style>
+    :root {
+      --bg: #050f07;
+      --stroke: #00b840;
+      --hair: #00b840;
+      --lens-fill: rgba(4,12,6,0.93);
+      --lens-shine: rgba(0,184,64,0.22);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --stroke: #2a2f3a;
+        --hair: #1a1e28;
+        --lens-fill: rgba(6,8,12,0.92);
+        --lens-shine: rgba(80,90,110,0.18);
+      }
+    }
+  </style>
 
-  <!-- Head: organic asymmetric outline, slightly irregular beziers -->
+  <rect width="32" height="32" rx="7" fill="var(--bg)"/>
+
+  <!-- Face — narrow tall oval, tapered jaw -->
   <path
-    d="M16 4.8
-       C13.1 4.6 10.3 6.2 9.3 8.7
-       C8.5 10.7 8.7 12.4 8.1 14.6
-       C7.6 16.8 7.9 18.6 9.3 20.2
-       C10.6 21.7 12.1 23.0 13.2 24.6
-       C14.1 25.8 14.9 26.7 16 26.9
-       C17.1 26.7 17.9 25.9 18.8 24.7
-       C19.9 23.2 21.5 21.8 22.7 20.3
-       C24.1 18.6 24.4 16.9 23.9 14.7
-       C23.4 12.5 23.5 10.8 22.7 8.8
-       C21.7 6.3 18.9 4.9 16 4.8Z"
-    stroke="#00e050" stroke-width="1.05" stroke-linejoin="round" opacity="0.88"
-    style="stroke-dasharray: none"
+    d="M16 8.0
+       C14.2 7.8 12.2 8.9 11.2 10.6
+       C10.4 12.0 10.5 13.4 10.2 15.2
+       C9.9 17.2 10.2 19.0 11.2 20.4
+       C12.2 21.8 13.2 22.6 14.0 23.5
+       C14.8 24.3 15.4 24.7 16 24.8
+       C16.6 24.7 17.2 24.3 18.0 23.5
+       C18.8 22.6 19.8 21.8 20.8 20.4
+       C21.8 19.0 22.1 17.2 21.8 15.2
+       C21.5 13.4 21.6 12.0 20.8 10.6
+       C19.8 8.9 17.8 7.8 16 8.0Z"
+    stroke="var(--stroke)" stroke-width="0.85" stroke-linejoin="round" opacity="0.80"
   />
 
-  <!-- Nose hint — short slightly curved stroke -->
-  <path d="M15.6 16.8 Q16 17.4 16.4 16.9" stroke="#00e050" stroke-width="0.65" stroke-linecap="round" opacity="0.45"/>
-
-  <!-- Left lens — slightly irregular quad, not a perfect rect -->
+  <!-- Slicked-back hair cap — solid dark filled shape -->
   <path
-    d="M8.8 13.2
-       Q9.2 11.9 10.7 11.8
-       L14.4 11.75
-       Q15.1 11.85 15.3 12.7
-       L15.25 14.85
-       Q15.05 15.65 14.3 15.7
-       L10.5 15.65
-       Q9.1 15.5 8.7 14.4 Z"
-    stroke="#00e050" stroke-width="0.9" stroke-linejoin="round"
-    fill="#00e050" fill-opacity="0.09"
+    d="M11.0 10.4
+       C11.0 8.2 13.0 5.2 16 5.0
+       C19.0 5.2 21.0 8.2 21.0 10.4
+       C19.8 9.9 18.0 9.5 16 9.5
+       C14.0 9.5 12.2 9.9 11.0 10.4Z"
+    fill="var(--hair)" opacity="1"
   />
+  <!-- Slick strands — fine lines converging back from temples -->
+  <path d="M11.2 10.0 C12.2 7.5 13.8 5.8 16 5.5" stroke="var(--hair)" stroke-width="0.5" stroke-linecap="round" opacity="0.45"/>
+  <path d="M20.8 10.0 C19.8 7.5 18.2 5.8 16 5.5" stroke="var(--hair)" stroke-width="0.5" stroke-linecap="round" opacity="0.45"/>
 
-  <!-- Right lens — mirror with slight positional nudge for asymmetry -->
+  <!-- Nose hint -->
+  <path d="M15.6 19.2 Q16 19.8 16.4 19.2" stroke="var(--stroke)" stroke-width="0.5" stroke-linecap="round" opacity="0.30"/>
+
+  <!-- Left lens — narrow horizontal oval, very dark -->
   <path
-    d="M23.2 13.3
-       Q22.8 12.0 21.3 11.85
-       L17.6 11.8
-       Q16.9 11.9 16.7 12.75
-       L16.75 14.9
-       Q16.95 15.7 17.7 15.75
-       L21.5 15.7
-       Q22.9 15.55 23.3 14.45 Z"
-    stroke="#00e050" stroke-width="0.9" stroke-linejoin="round"
-    fill="#00e050" fill-opacity="0.09"
+    d="M9.8 13.8 C9.9 12.7 10.7 12.2 11.8 12.2 L14.8 12.2 C15.4 12.3 15.6 12.8 15.6 13.4 L15.6 14.6 C15.5 15.3 15.0 15.5 14.3 15.5 L11.4 15.5 C10.3 15.4 9.7 14.8 9.8 13.8Z"
+    fill="var(--lens-fill)" stroke="var(--stroke)" stroke-width="0.65"
   />
-
-  <!-- Bridge — slight curve instead of straight line -->
-  <path d="M15.3 13.6 Q16 13.3 16.7 13.6" stroke="#00e050" stroke-width="0.85" stroke-linecap="round"/>
-
-  <!-- Temple left — slightly angled, not perfectly horizontal -->
-  <path d="M8.8 13.5 C8.1 13.7 7.4 14.1 6.9 14.4" stroke="#00e050" stroke-width="0.8" stroke-linecap="round"/>
-
-  <!-- Temple right -->
-  <path d="M23.2 13.6 C23.9 13.8 24.6 14.2 25.1 14.5" stroke="#00e050" stroke-width="0.8" stroke-linecap="round"/>
+  <!-- Right lens -->
+  <path
+    d="M22.2 13.8 C22.1 12.7 21.3 12.2 20.2 12.2 L17.2 12.2 C16.6 12.3 16.4 12.8 16.4 13.4 L16.4 14.6 C16.5 15.3 17.0 15.5 17.7 15.5 L20.6 15.5 C21.7 15.4 22.3 14.8 22.2 13.8Z"
+    fill="var(--lens-fill)" stroke="var(--stroke)" stroke-width="0.65"
+  />
+  <!-- Lens shine -->
+  <path d="M10.6 12.7 C11.4 12.3 12.6 12.2 13.8 12.3" stroke="var(--lens-shine)" stroke-width="0.6" stroke-linecap="round" opacity="0.85"/>
+  <path d="M17.4 12.7 C18.2 12.3 19.4 12.2 20.6 12.3" stroke="var(--lens-shine)" stroke-width="0.6" stroke-linecap="round" opacity="0.85"/>
+  <!-- Bridge -->
+  <path d="M15.6 13.9 L16.4 13.9" stroke="var(--stroke)" stroke-width="0.55" stroke-linecap="round"/>
+  <!-- Temples — horizontal wire -->
+  <path d="M9.8 13.8 L6.8 13.8" stroke="var(--stroke)" stroke-width="0.55" stroke-linecap="round"/>
+  <path d="M22.2 13.8 L25.2 13.8" stroke="var(--stroke)" stroke-width="0.55" stroke-linecap="round"/>
 </svg>

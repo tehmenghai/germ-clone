@@ -19,7 +19,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from rag.graph import build_graph
-from schemas.events import StageEvent
+from schemas.events import PIPE_STAGES, StageEvent
 from streaming.emitter import emit_event
 
 router = APIRouter(tags=["ask"])
@@ -58,15 +58,20 @@ async def ask(
 
     async def _stream() -> AsyncGenerator[str, None]:
         async def _run_graph() -> None:
+            last_completed: str = ""
             try:
                 async for update in _graph.astream(
                     initial_state, stream_mode="updates"
                 ):
-                    for node_output in update.values():
+                    for _node_name, node_output in update.items():
                         for event in node_output.get("stage_events", []):
+                            last_completed = event.stage
                             await event_queue.put(("event", event))
             except Exception as exc:
-                await event_queue.put(("error", str(exc)))
+                # Attribute error to the stage after the last completed one
+                idx = PIPE_STAGES.index(last_completed) + 1 if last_completed in PIPE_STAGES else 0
+                failed_stage = PIPE_STAGES[idx] if idx < len(PIPE_STAGES) else PIPE_STAGES[-1]
+                await event_queue.put(("error", {"stage": failed_stage, "detail": str(exc)}))
             finally:
                 await event_queue.put(("done", None))
 
@@ -85,7 +90,9 @@ async def ask(
                         StageEvent(stage="compose", status="active", token=payload)
                     )
                 elif kind == "error":
-                    err = StageEvent(stage="compose", status="error", detail=payload)
+                    err = StageEvent(
+                        stage=payload["stage"], status="error", detail=payload["detail"]
+                    )
                     yield f"data: {json.dumps(err.model_dump(exclude_none=True))}\n\n"
         finally:
             if not graph_task.done():
