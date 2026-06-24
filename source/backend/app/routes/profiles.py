@@ -9,7 +9,11 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 
-_profiles: list[dict[str, str]] = []
+_profiles: list[dict[str, str]] = [
+    {"id": "00000000-0000-0000-0000-000000000001", "name": "Neo"},
+    {"id": "00000000-0000-0000-0000-000000000002", "name": "Morpheus"},
+    {"id": "00000000-0000-0000-0000-000000000003", "name": "Trinity"},
+]
 
 
 class ProfileResponse(BaseModel):

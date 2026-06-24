@@ -11,9 +11,9 @@ import { SettingsDrawer } from "@/components/settings/SettingsDrawer";
 import { DigitalRain } from "@/components/fx/DigitalRain";
 import { ConsoleChips } from "@/components/workspace/ConsoleChips";
 import { AnswerProse } from "@/components/workspace/AnswerProse";
-import { askStream, getInference, setInference, type InferenceBackend } from "@/lib/api";
+import { askStream, getInference, setInference, getPipelineMode, setPipelineMode, type InferenceBackend, type PipelineMode } from "@/lib/api";
 import { detectActiveModules } from "@/lib/topics";
-import type { StageEvent } from "@/lib/mock-stream";
+import type { StageEvent, Citation, EvalScores } from "@/lib/mock-stream";
 
 export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -22,14 +22,21 @@ export default function HomePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
   const [backend, setBackend] = useState<InferenceBackend>("ollama");
+  const [pipelineMode, setPipelineModeState] = useState<PipelineMode>("langgraph");
 
   useEffect(() => {
     getInference().then((r) => setBackend(r.backend)).catch(() => {});
+    getPipelineMode().then((r) => setPipelineModeState(r.mode)).catch(() => {});
   }, []);
 
   function handleBackendChange(v: InferenceBackend) {
     setBackend(v);
     setInference(v).catch(() => {});
+  }
+
+  function handlePipelineModeChange(v: PipelineMode) {
+    setPipelineModeState(v);
+    setPipelineMode(v).catch(() => {});
   }
 
   // Conversation state — handoff model
@@ -42,6 +49,10 @@ export default function HomePage() {
 
   const runningRef = useRef(false);
 
+  // Cache all three difficulty variants per question: { eli5, standard, academia }
+  type AnswerVariant = { answerMd: string; citations: Citation[]; scores?: EvalScores };
+  const [answerCache, setAnswerCache] = useState<Record<string, Partial<Record<Difficulty, AnswerVariant>>>>({});
+
   const handleAsk = useCallback((q: string) => {
     if (runningRef.current || !profile) return;
     runningRef.current = true;
@@ -52,46 +63,96 @@ export default function HomePage() {
     setActiveIdx(-1);
     setPhase("running");
     setInput("");
+    // Clear cache for this question so stale variants don't show
+    setAnswerCache((prev) => ({ ...prev, [q]: {} }));
 
-    const collected: StageEvent[] = [];
+    const allDifficulties: Difficulty[] = ["eli5", "standard", "academia"];
+    let finishedCount = 0;
+
+    // Stream the selected difficulty first for pipeline events; others run silently in parallel
+    const primaryDifficulty = difficultyRef.current;
+    const primaryCollected: StageEvent[] = [];
     let idx = 0;
 
-    const es = askStream(q, profile.id, difficulty);
+    function streamOne(d: Difficulty) {
+      const es = askStream(q, profile!.id, d);
+      const localCollected: StageEvent[] = [];
+      const isPrimary = d === primaryDifficulty;
 
-    es.onmessage = (e) => {
-      const event: StageEvent = JSON.parse(e.data);
-      if (event.stage === "compose" && event.status === "active") return;
-      collected.push(event);
-      setEvents([...collected]);
-      setActiveIdx(idx);
-      idx++;
-      if (event.stage === "compose" && event.status === "done") {
+      es.onmessage = (e) => {
+        const event: StageEvent = JSON.parse(e.data);
+        if (event.stage === "compose" && event.status === "active") return;
+        if (isPrimary) {
+          primaryCollected.push(event);
+          setEvents([...primaryCollected]);
+          setActiveIdx(idx++);
+        } else {
+          localCollected.push(event);
+        }
+        if (event.stage === "compose" && event.status === "done") {
+          es.close();
+          const evs = isPrimary ? primaryCollected : localCollected;
+          const compose = evs.find((ev) => ev.stage === "compose" && ev.status === "done");
+          const lastEval = [...evs].reverse().find((ev) => ev.stage.startsWith("evaluate") && ev.scores);
+          const variant: AnswerVariant = {
+            answerMd: compose?.answer_md ?? "",
+            citations: compose?.citations ?? [],
+            scores: lastEval?.scores,
+          };
+          setAnswerCache((prev) => ({ ...prev, [q]: { ...prev[q], [d]: variant } }));
+          if (isPrimary) {
+            // Append bot message driven by primary difficulty; cache drives toggle
+            setMsgs((m) => [...m, {
+              role: "bot",
+              answerMd: variant.answerMd,
+              citations: variant.citations,
+              scores: variant.scores,
+            }]);
+          }
+          finishedCount++;
+          if (finishedCount === allDifficulties.length) {
+            setPhase("done");
+            runningRef.current = false;
+          }
+        }
+      };
+
+      es.onerror = () => {
         es.close();
-        finish();
-      }
-    };
-
-    es.onerror = () => {
-      es.close();
-      finish();
-    };
-
-    function finish() {
-      setPhase("done");
-      runningRef.current = false;
-      const compose = collected.find((e) => e.stage === "compose" && e.status === "done");
-      const lastEval = [...collected].reverse().find((e) => e.stage.startsWith("evaluate") && e.scores);
-      setMsgs((m) => [
-        ...m,
-        {
-          role: "bot",
-          answerMd: compose?.answer_md ?? "",
-          citations: compose?.citations ?? [],
-          scores: lastEval?.scores ?? undefined,
-        },
-      ]);
+        finishedCount++;
+        if (finishedCount === allDifficulties.length) {
+          setPhase("done");
+          runningRef.current = false;
+        }
+      };
     }
-  }, [profile, difficulty]);
+
+    allDifficulties.forEach(streamOne);
+  }, [profile]);
+
+  const difficultyRef = useRef(difficulty);
+  difficultyRef.current = difficulty;
+
+  // When difficulty toggles, swap the last bot message from cache if available
+  useEffect(() => {
+    setMsgs((prev) => {
+      const lastBotIdx = prev.findLastIndex((m) => m.role === "bot");
+      if (lastBotIdx === -1) return prev;
+      const lastUserMsg = [...prev].slice(0, lastBotIdx).reverse().find((m) => m.role === "user");
+      if (!lastUserMsg?.text) return prev;
+      const variant = answerCache[lastUserMsg.text]?.[difficulty];
+      if (!variant) return prev; // not yet cached, keep current
+      const updated = [...prev];
+      updated[lastBotIdx] = {
+        role: "bot",
+        answerMd: variant.answerMd,
+        citations: variant.citations,
+        scores: variant.scores,
+      };
+      return updated;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [difficulty, answerCache]);
 
   function handleSubmit() {
     const q = input.trim();
@@ -129,6 +190,8 @@ export default function HomePage() {
         hasActiveTopic={hasActiveTopic}
         backend={backend}
         onBackendChange={handleBackendChange}
+        pipelineMode={pipelineMode}
+        onPipelineModeChange={handlePipelineModeChange}
       />
 
       <div style={{ flex: 1, overflow: "hidden", display: "flex", position: "relative" }}>
@@ -164,7 +227,7 @@ export default function HomePage() {
         )}
       </div>
 
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} backend={backend} onBackendChange={handleBackendChange} />
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} backend={backend} onBackendChange={handleBackendChange} pipelineMode={pipelineMode} onPipelineModeChange={handlePipelineModeChange} />
       </>}
     </div>
   );

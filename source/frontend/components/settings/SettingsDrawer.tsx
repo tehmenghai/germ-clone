@@ -1,15 +1,17 @@
 "use client";
 
-import type { InferenceBackend } from "@/lib/api";
+import type { InferenceBackend, PipelineMode } from "@/lib/api";
 
 interface SettingsDrawerProps {
   open: boolean;
   onClose: () => void;
   backend: InferenceBackend;
   onBackendChange: (v: InferenceBackend) => void;
+  pipelineMode: PipelineMode;
+  onPipelineModeChange: (v: PipelineMode) => void;
 }
 
-export function SettingsDrawer({ open, onClose, backend, onBackendChange }: SettingsDrawerProps) {
+export function SettingsDrawer({ open, onClose, backend, onBackendChange, pipelineMode, onPipelineModeChange }: SettingsDrawerProps) {
   if (!open) return null;
 
   return (
@@ -79,17 +81,25 @@ export function SettingsDrawer({ open, onClose, backend, onBackendChange }: Sett
         </h2>
         <div style={{ marginBottom: 22 }} />
 
-        <DrawerBody backend={backend} onBackendChange={onBackendChange} />
+        <DrawerBody backend={backend} onBackendChange={onBackendChange} pipelineMode={pipelineMode} onPipelineModeChange={onPipelineModeChange} />
       </aside>
     </>
   );
 }
 
-function DrawerBody({ backend, onBackendChange }: { backend: InferenceBackend; onBackendChange: (v: InferenceBackend) => void }) {
+function DrawerBody({ backend, onBackendChange, pipelineMode, onPipelineModeChange }: {
+  backend: InferenceBackend;
+  onBackendChange: (v: InferenceBackend) => void;
+  pipelineMode: PipelineMode;
+  onPipelineModeChange: (v: PipelineMode) => void;
+}) {
   return (
     <>
       <DGroup title="LLM BACKEND">
         <InferenceToggle value={backend} onChange={onBackendChange} />
+      </DGroup>
+      <DGroup title="PIPELINE ORCHESTRATOR">
+        <PipelineToggle value={pipelineMode} onChange={onPipelineModeChange} />
       </DGroup>
       <DGroup title="CORPUS">
         <CorpusManager />
@@ -212,6 +222,82 @@ function InferenceToggle({ value, onChange }: { value: InferenceBackend; onChang
       })}
       <p style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: "var(--txt-faint)", marginTop: 2 }}>
         Selection POSTs to <code style={{ color: "var(--cyan)" }}>POST /settings/inference</code> and takes effect immediately.
+      </p>
+    </div>
+  );
+}
+
+const PIPELINE_OPTIONS: Array<{ value: PipelineMode; label: string; desc: string; wip?: boolean }> = [
+  {
+    value: "langgraph",
+    label: "LangGraph",
+    desc: "Default production orchestrator. All live requests run through the LangGraph agentic RAG pipeline.",
+  },
+  {
+    value: "langflow",
+    label: "Langflow",
+    desc: "Langflow design sketchpad — Lanson's WIP. Not on the live request path. Toggle recorded for dev visibility only.",
+    wip: true,
+  },
+];
+
+function PipelineToggle({ value, onChange }: { value: PipelineMode; onChange: (v: PipelineMode) => void }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {PIPELINE_OPTIONS.map((opt) => {
+        const active = value === opt.value;
+        const accentColor = opt.wip ? "var(--amber)" : "var(--green)";
+        return (
+          <div
+            key={opt.value}
+            role="button"
+            tabIndex={0}
+            aria-pressed={active}
+            onClick={() => onChange(opt.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onChange(opt.value); }}
+            style={{
+              border: `1px solid ${active ? accentColor : "var(--line)"}`,
+              borderRadius: 12,
+              padding: "13px 15px",
+              display: "flex",
+              gap: 13,
+              alignItems: "flex-start",
+              marginBottom: 9,
+              background: active
+                ? `color-mix(in oklab, ${accentColor} 6%, var(--panel))`
+                : "var(--panel)",
+              boxShadow: active ? (opt.wip ? `0 0 8px color-mix(in oklab, var(--amber) 30%, transparent)` : "var(--glow)") : "none",
+              cursor: "pointer",
+            }}
+          >
+            <div style={{
+              width: 18, height: 18, borderRadius: "50%",
+              border: `2px solid ${active ? accentColor : "var(--line)"}`,
+              flexShrink: 0, marginTop: 2,
+              display: "grid", placeItems: "center",
+            }}>
+              {active && <div style={{ width: 9, height: 9, borderRadius: "50%", background: accentColor }} />}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--txt)", display: "flex", alignItems: "center", gap: 8 }}>
+                {opt.label}
+                {opt.wip && (
+                  <span style={{
+                    fontSize: 9, letterSpacing: "0.5px", textTransform: "uppercase",
+                    border: "1px solid var(--amber)", borderRadius: 999, padding: "1px 6px",
+                    color: "var(--amber)",
+                  }}>
+                    WIP
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--txt-dim)", lineHeight: 1.5, marginTop: 3 }}>{opt.desc}</div>
+            </div>
+          </div>
+        );
+      })}
+      <p style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: "var(--txt-faint)", marginTop: 2 }}>
+        Selection POSTs to <code style={{ color: "var(--cyan)" }}>POST /settings/pipeline</code> and takes effect immediately.
       </p>
     </div>
   );

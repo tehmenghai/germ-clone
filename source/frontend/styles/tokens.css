@@ -28,7 +28,8 @@
   --on-green:    #04130b;
   --icon-stroke: #00b840;
   --icon-hair:   #00b840;
-  --icon-lens-fill: oklch(0.75 0.21 150 / 0.10);
+  --icon-lens-fill: oklch(0.12 0.04 150 / 0.92);
+  --icon-lens-shine: oklch(0.40 0.08 150 / 0.25);
   /* glass (Blue Pill / Matrix terminal) */
   --glass-bg:    color-mix(in oklab, var(--bg) 78%, transparent);
   --glass-blur:  14px;
@@ -64,7 +65,8 @@
   --on-green:    #ffffff;
   --icon-stroke: oklch(0.22 0.02 230);
   --icon-hair:   oklch(0.18 0.02 230);
-  --icon-lens-fill: oklch(0.22 0.02 230 / 0.08);
+  --icon-lens-fill: oklch(0.10 0.01 230 / 0.92);
+  --icon-lens-shine: oklch(0.45 0.02 230 / 0.20);
   --glass-bg:    color-mix(in oklab, var(--bg) 85%, transparent);
   --glass-blur:  10px;
   --glow:        0 1px 3px oklch(0.55 0.13 165 / 0.18);
