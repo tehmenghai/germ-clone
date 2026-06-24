@@ -65,7 +65,7 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
         onMouseEnter={(e) => { if (onHome) (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
       >
-        {/* Neo face logo — theme-invariant, matches browser favicon */}
+        {/* Neo face logo — theme-adaptive via CSS vars */}
         <svg
           aria-hidden
           width="34"
@@ -76,20 +76,45 @@ export function Header({ viewMode, onViewMode, difficulty, onDifficulty, onSetti
           style={{ flexShrink: 0, border: "1px solid var(--line)", borderRadius: 7 }}
         >
           <rect width="32" height="32" rx="7" fill="var(--panel)"/>
-          {/* Head — organic irregular beziers, sketch-like */}
-          <path d="M16 4.8 C13.1 4.6 10.3 6.2 9.3 8.7 C8.5 10.7 8.7 12.4 8.1 14.6 C7.6 16.8 7.9 18.6 9.3 20.2 C10.6 21.7 12.1 23.0 13.2 24.6 C14.1 25.8 14.9 26.7 16 26.9 C17.1 26.7 17.9 25.9 18.8 24.7 C19.9 23.2 21.5 21.8 22.7 20.3 C24.1 18.6 24.4 16.9 23.9 14.7 C23.4 12.5 23.5 10.8 22.7 8.8 C21.7 6.3 18.9 4.9 16 4.8Z" stroke="#00e050" strokeWidth="1.05" strokeLinejoin="round" opacity={0.88}/>
+          {/* Head — softer bezier curves, less angular */}
+          <path
+            d="M16 6.5
+               C13.5 6.3 11.0 7.6 9.8 9.8
+               C8.9 11.5 9.1 13.0 8.6 15.0
+               C8.1 17.0 8.4 18.7 9.6 20.1
+               C10.8 21.5 12.2 22.7 13.2 24.2
+               C14.0 25.4 14.9 26.2 16 26.4
+               C17.1 26.2 18.0 25.4 18.8 24.3
+               C19.8 22.8 21.2 21.5 22.4 20.1
+               C23.6 18.7 23.9 17.0 23.4 15.0
+               C23.0 13.0 23.1 11.5 22.2 9.8
+               C21.0 7.6 18.5 6.3 16 6.5Z"
+            stroke="var(--icon-stroke)" strokeWidth="1.0" strokeLinejoin="round" opacity={0.85}
+          />
+          {/* Neo fringe hair — long sweeping strands across forehead */}
+          <path d="M9.5 9.5 C10.5 5.8 13.0 4.2 14.8 6.8 C15.4 7.6 15.8 8.8 16.0 9.5" stroke="var(--icon-hair)" strokeWidth="1.1" strokeLinecap="round" opacity={0.9}/>
+          <path d="M10.2 8.2 C11.5 4.5 14.5 3.4 16.5 5.8 C17.2 6.7 17.5 8.0 17.6 9.2" stroke="var(--icon-hair)" strokeWidth="0.95" strokeLinecap="round" opacity={0.75}/>
+          <path d="M11.5 7.2 C13.2 3.8 16.5 3.0 18.2 5.5 C18.8 6.4 19.0 7.7 18.8 8.8" stroke="var(--icon-hair)" strokeWidth="0.8" strokeLinecap="round" opacity={0.55}/>
           {/* Nose hint */}
-          <path d="M15.6 16.8 Q16 17.4 16.4 16.9" stroke="#00e050" strokeWidth="0.65" strokeLinecap="round" opacity={0.45}/>
-          {/* Left lens — slightly irregular */}
-          <path d="M8.8 13.2 Q9.2 11.9 10.7 11.8 L14.4 11.75 Q15.1 11.85 15.3 12.7 L15.25 14.85 Q15.05 15.65 14.3 15.7 L10.5 15.65 Q9.1 15.5 8.7 14.4 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
+          <path d="M15.6 17.0 Q16 17.5 16.4 17.0" stroke="var(--icon-stroke)" strokeWidth="0.6" strokeLinecap="round" opacity={0.4}/>
+          {/* Left lens */}
+          <path
+            d="M9.0 13.4 C9.1 12.2 9.9 11.7 11.0 11.7 L14.2 11.7 C14.9 11.8 15.2 12.4 15.2 13.0 L15.2 15.0 C15.1 15.7 14.6 15.9 13.9 15.9 L10.8 15.9 C9.7 15.8 8.9 15.2 9.0 14.2 Z"
+            stroke="var(--icon-stroke)" strokeWidth="0.85" strokeLinejoin="round"
+            fill="var(--icon-lens-fill)"
+          />
           {/* Right lens */}
-          <path d="M23.2 13.3 Q22.8 12.0 21.3 11.85 L17.6 11.8 Q16.9 11.9 16.7 12.75 L16.75 14.9 Q16.95 15.7 17.7 15.75 L21.5 15.7 Q22.9 15.55 23.3 14.45 Z" stroke="#00e050" strokeWidth="0.9" strokeLinejoin="round" fill="#00e050" fillOpacity="0.09"/>
-          {/* Bridge — slight curve */}
-          <path d="M15.3 13.6 Q16 13.3 16.7 13.6" stroke="#00e050" strokeWidth="0.85" strokeLinecap="round"/>
+          <path
+            d="M23.0 13.4 C22.9 12.2 22.1 11.7 21.0 11.7 L17.8 11.7 C17.1 11.8 16.8 12.4 16.8 13.0 L16.8 15.0 C16.9 15.7 17.4 15.9 18.1 15.9 L21.2 15.9 C22.3 15.8 23.1 15.2 23.0 14.2 Z"
+            stroke="var(--icon-stroke)" strokeWidth="0.85" strokeLinejoin="round"
+            fill="var(--icon-lens-fill)"
+          />
+          {/* Bridge */}
+          <path d="M15.2 13.5 Q16 13.2 16.8 13.5" stroke="var(--icon-stroke)" strokeWidth="0.8" strokeLinecap="round"/>
           {/* Temple left */}
-          <path d="M8.8 13.5 C8.1 13.7 7.4 14.1 6.9 14.4" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
+          <path d="M9.0 13.6 C8.3 13.8 7.6 14.1 7.1 14.4" stroke="var(--icon-stroke)" strokeWidth="0.75" strokeLinecap="round"/>
           {/* Temple right */}
-          <path d="M23.2 13.6 C23.9 13.8 24.6 14.2 25.1 14.5" stroke="#00e050" strokeWidth="0.8" strokeLinecap="round"/>
+          <path d="M23.0 13.6 C23.7 13.8 24.4 14.1 24.9 14.4" stroke="var(--icon-stroke)" strokeWidth="0.75" strokeLinecap="round"/>
         </svg>
         <div>
           <div
