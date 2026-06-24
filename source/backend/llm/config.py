@@ -3,9 +3,11 @@ LLM provider configuration.
 Reads env vars on import; exposes get/set_backend() for the inference-toggle endpoint.
 """
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).parents[1] / ".env")
 
 OLLAMA_URL: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
 

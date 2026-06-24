@@ -3,16 +3,18 @@ Embedding provider/model configuration.
 Reads env vars on import; exposes get/set functions for the embedding-toggle endpoint.
 """
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Resolve .env relative to this file so it loads correctly regardless of cwd
+load_dotenv(Path(__file__).parents[1] / ".env")
 
 VALID_PROVIDERS = {"ollama", "google"}
 
 _state: dict[str, str] = {
-    "provider": os.getenv("EMBEDDING_PROVIDER", "google"),
-    "model": os.getenv("EMBEDDING_MODEL", "gemini-embedding-2"),
+    "provider": os.getenv("EMBEDDING_PROVIDER", "ollama"),
+    "model": os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
 }
 
 
