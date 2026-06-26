@@ -63,71 +63,86 @@ export default function HomePage() {
     setActiveIdx(-1);
     setPhase("running");
     setInput("");
-    // Clear cache for this question so stale variants don't show
     setAnswerCache((prev) => ({ ...prev, [q]: {} }));
 
-    const allDifficulties: Difficulty[] = ["eli5", "standard", "academia"];
-    let finishedCount = 0;
-
-    // Stream the selected difficulty first for pipeline events; others run silently in parallel
     const primaryDifficulty = difficultyRef.current;
+    const secondaryDifficulties = (["eli5", "standard", "academia"] as Difficulty[]).filter(
+      (d) => d !== primaryDifficulty
+    );
     const primaryCollected: StageEvent[] = [];
     let idx = 0;
 
-    function streamOne(d: Difficulty) {
+    // Silently stream one non-primary difficulty into the cache; no UI updates.
+    function streamSecondary(d: Difficulty) {
       const es = askStream(q, profile!.id, d);
-      const localCollected: StageEvent[] = [];
-      const isPrimary = d === primaryDifficulty;
-
+      const collected: StageEvent[] = [];
       es.onmessage = (e) => {
         const event: StageEvent = JSON.parse(e.data);
         if (event.stage === "compose" && event.status === "active") return;
-        if (isPrimary) {
-          primaryCollected.push(event);
-          setEvents([...primaryCollected]);
-          setActiveIdx(idx++);
-        } else {
-          localCollected.push(event);
-        }
+        if (event.status === "error") { es.close(); return; }
+        collected.push(event);
         if (event.stage === "compose" && event.status === "done") {
           es.close();
-          const evs = isPrimary ? primaryCollected : localCollected;
-          const compose = evs.find((ev) => ev.stage === "compose" && ev.status === "done");
-          const lastEval = [...evs].reverse().find((ev) => ev.stage.startsWith("evaluate") && ev.scores);
-          const variant: AnswerVariant = {
-            answerMd: compose?.answer_md ?? "",
-            citations: compose?.citations ?? [],
-            scores: lastEval?.scores,
-          };
-          setAnswerCache((prev) => ({ ...prev, [q]: { ...prev[q], [d]: variant } }));
-          if (isPrimary) {
-            // Append bot message driven by primary difficulty; cache drives toggle
-            setMsgs((m) => [...m, {
-              role: "bot",
-              answerMd: variant.answerMd,
-              citations: variant.citations,
-              scores: variant.scores,
-            }]);
-          }
-          finishedCount++;
-          if (finishedCount === allDifficulties.length) {
-            setPhase("done");
-            runningRef.current = false;
-          }
+          const lastEval = [...collected].reverse().find((ev) => ev.stage.startsWith("evaluate") && ev.scores);
+          setAnswerCache((prev) => ({
+            ...prev,
+            [q]: {
+              ...prev[q],
+              [d]: { answerMd: event.answer_md ?? "", citations: event.citations ?? [], scores: lastEval?.scores },
+            },
+          }));
         }
       };
-
-      es.onerror = () => {
-        es.close();
-        finishedCount++;
-        if (finishedCount === allDifficulties.length) {
-          setPhase("done");
-          runningRef.current = false;
-        }
-      };
+      es.onerror = () => es.close();
     }
 
-    allDifficulties.forEach(streamOne);
+    // Stream primary difficulty — drives UI and unlocks input on completion.
+    const primaryEs = askStream(q, profile!.id, primaryDifficulty);
+    primaryEs.onmessage = (e) => {
+      const event: StageEvent = JSON.parse(e.data);
+      if (event.stage === "compose" && event.status === "active") return;
+
+      // Surface backend error events to the user; terminate the pipeline.
+      if (event.status === "error") {
+        primaryEs.close();
+        const label = event.detail?.includes("RateLimitError")
+          ? "Rate limit hit — try again in a moment, or switch to a different LLM backend."
+          : event.detail?.includes("InvalidAPIKey") || event.detail?.includes("invalid_api_key")
+          ? "API key rejected — check the active backend in Settings."
+          : `Pipeline error: ${event.detail ?? "unknown"}`;
+        setMsgs((m) => [...m, { role: "bot", answerMd: "", citations: [], note: label }]);
+        setPhase("done");
+        runningRef.current = false;
+        return;
+      }
+
+      primaryCollected.push(event);
+      setEvents([...primaryCollected]);
+      setActiveIdx(idx++);
+
+      if (event.stage === "compose" && event.status === "done") {
+        primaryEs.close();
+        const lastEval = [...primaryCollected].reverse().find((ev) => ev.stage.startsWith("evaluate") && ev.scores);
+        const variant: AnswerVariant = {
+          answerMd: event.answer_md ?? "",
+          citations: event.citations ?? [],
+          scores: lastEval?.scores,
+        };
+        setAnswerCache((prev) => ({ ...prev, [q]: { ...prev[q], [primaryDifficulty]: variant } }));
+        setMsgs((m) => [...m, { role: "bot", answerMd: variant.answerMd, citations: variant.citations, scores: variant.scores }]);
+        setPhase("done");
+        runningRef.current = false;
+        // Prefetch secondary variants silently now that primary is done.
+        secondaryDifficulties.forEach(streamSecondary);
+      }
+    };
+
+    primaryEs.onerror = () => {
+      primaryEs.close();
+      setMsgs((m) => [...m, { role: "bot", answerMd: "", citations: [], note: "Connection lost — please try again." }]);
+      setPhase("done");
+      runningRef.current = false;
+    };
   }, [profile]);
 
   const difficultyRef = useRef(difficulty);
@@ -184,7 +199,7 @@ export default function HomePage() {
         difficulty={difficulty}
         onDifficulty={setDifficulty}
         onSettings={() => setSettingsOpen(true)}
-        onHome={() => { setMsgs([]); setEvents([]); setCurrentQuery(""); setPhase("idle"); setActiveIdx(-1); setInput(""); }}
+        onHome={() => { setMsgs([]); setEvents([]); setCurrentQuery(""); setPhase("idle"); setActiveIdx(-1); setInput(""); setProfile(null); }}
         ragPipeActive={railOpen}
         onRagPipe={() => setRailOpen((v) => !v)}
         hasActiveTopic={hasActiveTopic}
