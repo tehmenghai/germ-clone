@@ -50,10 +50,10 @@ Expected Results (Standard difficulty tab):
 - Answer prose has inline `[N]` citations and a `## References` section
 - Math tab and answer show the topic's curated equations
 - Visualize tab renders the matching component
-- Answer metrics:
-  f (faithfulness): Every claim in the answer is grounded in retrieved chunks
-  r (relevance)   : Retrieved chunks actually address the question (Sources panel shows chunks from the correct module's PDF/VTT)
-  c (completeness): The answer fully covers the question
+- Answer metrics:  
+  f (faithfulness): Every claim in the answer is grounded in retrieved chunks  
+  r (relevance)   : Retrieved chunks actually address the question (Sources panel shows chunks from the correct module's PDF/VTT)  
+  c (completeness): The answer fully covers the question  
 
 ---
 
