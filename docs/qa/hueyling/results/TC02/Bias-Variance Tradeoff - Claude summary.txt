@@ -1,0 +1,27 @@
+Here's a summary of what Germayne said about the bias-variance tradeoff in GMT20260416-102943_Recording.transcript.vtt:
+
+**Core concept:** Germayne framed the bias-variance tradeoff as a central theme in machine learning: when a model has high variance, its bias tends to go down, and when a model has high bias, its variance tends to go down.
+
+**Bias (underfitting):**
+- He described bias in a "hand-wavy" way as essentially underfitting.
+- Example: linear regression fit to clearly nonlinear data — by definition it must draw a straight line, so no matter how much data you give it, it can't capture the true curved relationship.
+- High bias means the model has too many assumptions/constraints, making it too rigid to capture the underlying pattern in the data. This is underfitting.
+
+**Variance (overfitting):**
+- He then contrasted this with a model that fits every single point perfectly, calling this the definition of overfitting.
+- High variance means the model is too flexible and ends up capturing noise, not just signal.
+- Key test: if you resample the data and retrain, an overfit model gives very different outputs each time — that instability is why it's called "high variance."
+- He compared this to a student who memorizes exam answers: perfect on identical questions, but fails when the question changes slightly — "so good at your training data, but you learn nothing."
+
+**The tradeoff itself:**
+- You don't want a model that only works on training data (overfitting) nor one that gives generic outputs and learns nothing (underfitting) — you want to balance the two.
+- As model complexity increases, bias naturally decreases (fewer assumptions, more flexibility) but variance increases as a tradeoff. He illustrated this with an error-vs-model-complexity graph.
+- He noted this is a very common data science interview question ("what is bias-variance tradeoff?").
+
+**Bullseye analogy:**
+- Low bias, low variance → arrows consistently hit the bullseye (ideal).
+- Low bias, high variance → arrows scattered around the bullseye on average, but wildly spread (inaccurate/unstable).
+- High bias, low variance → arrows tightly clustered but consistently off-target (consistently wrong).
+- High bias, high variance → the worst case, essentially no reliable model.
+
+**Practical takeaway:** He cited Andrew Ng's famous point that one way to reduce variance is simply to use more (diverse) training data, since exposing the model to more relevant examples helps prevent overfitting — this also set up the later discussion of regularization as another way to address high variance.

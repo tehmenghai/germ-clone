@@ -1,0 +1,25 @@
+Based on GMT20260414-103649_Recording.transcript.vtt, here's how Germayne distinguished precision and recall:
+
+**Precision:**
+- Formula: TP / (TP + FP) — looking at all the cases you **predicted as positive (1)**.
+- In his words: "out of all the cases that you predict, how many of them are correct?"
+- **How to abuse/game it:** he asked students how to artificially get high precision, and the answer was — **predict less** (i.e., only predict positive when you're very confident). If you barely predict any 1s, but the few you do predict are correct, your precision looks great even though you're missing most of the true positives. His line: "precision can be abused if your model predicts less."
+
+**Recall:**
+- Formula: TP / (TP + FN) — looking at all the cases that are **actually positive (1)** in reality.
+- In his words: "out of all of the true labels, how many do you get correct?"
+- **How to abuse/game it:** the counterpart trick — **predict positive more often** (lower your threshold so you say "1" liberally). If you predict almost everything as positive, you'll catch nearly all the true positives, inflating recall, even though many of those predictions will be wrong.
+
+**The core difference — what each one's denominator is anchored to:**
+- Precision's denominator = everything **you predicted as positive** (TP + FP).
+- Recall's denominator = everything that's **actually positive** (TP + FN).
+
+**The tradeoff:**
+- He stated plainly: "Precision is always, like, a trade-off with recall." Pushing your model toward high precision (predicting positive only when very confident) tends to hurt recall, and pushing toward high recall (predicting positive more liberally) tends to hurt precision.
+- However, he clarified this isn't an absolute law — a genuinely excellent model can have both high precision and high recall simultaneously; the tradeoff mainly shows up when you're adjusting the decision threshold on a fixed model.
+
+**Use-case framing (why the difference matters in practice):**
+- He gave examples of when you'd prioritize one over the other:
+  - **Prioritize recall** in situations like COVID-era quarantine decisions — you'd rather flag/quarantine more people (even wrongly) than miss actual cases, so you optimize for catching as many true positives as possible.
+  - **Prioritize precision** in a scenario like a bank deciding who to flag/ban for fraud — he asked whether recall is a good metric for a bank catching fraud, and pointed out that if you optimize purely for recall, you risk banning many legitimate customers, which is a bad customer experience. So banks might prefer precision — only act when confident.
+- His overall takeaway: the decision of which one to optimize for is a **business/domain decision**, not something the model builder decides in isolation — "you guys probably, if you are building the model, you are not the one deciding whether it should be high precision or high recall."

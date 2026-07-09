@@ -1,0 +1,13 @@
+In GMT20260430-103736_Recording.transcript.vtt, Germayne discussed regularization specifically in the context of neural networks, presenting two distinct techniques:
+
+**1. L2 regularization / "weight decay"**
+- He noted that for neural networks (e.g., in PyTorch), there are two types of regularization, and one is called L2 norm / L2 regularization.
+- He linked it back to the earlier ridge regression discussion, reminding students that L2 basically shrinks the weights.
+- He pointed out a naming distinction: in PyTorch's documentation, this same idea is called **weight decay** rather than "L2 norm" — but it's functionally the same concept, just a separate mechanism to shrink the weights in a neural network context.
+
+**2. Dropout**
+- He introduced dropout as another regularization "Lego block" that can be added to a neural network.
+- Mechanism: during training, dropout randomly deactivates hidden units with some probability P (between 0 and 1) — e.g., if P = 0.5, roughly half the hidden units in that layer get randomly deactivated during a given training pass, and those deactivated units are not updated during backpropagation for that iteration.
+- Intuition: this prevents the model from relying too heavily on any single hidden unit. If a hidden unit is deactivated, training shifts to rely on the others; over many iterations, this spreads reliance across units so no single one overfits to specific patterns that might not generalize to new data.
+- He warned that if dropout probability is set too high, the model effectively stops learning.
+- He asked students whether dropout should be active during inference/production (e.g., submitting to Kaggle) — the answer was **no**: dropout is a training-time-only technique. He clarified the reason isn't that it would "overfit" at inference, but that you want the model's full, best performance in production, so there's no reason to randomly turn off units then. (He noted some Kaggle practitioners do experiment with using dropout at inference, but called that a topic for another day.)

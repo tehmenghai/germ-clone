@@ -1,0 +1,20 @@
+Here's a summary of what Germayne said about L1 vs L2 regularization in GMT20260416-102943_Recording.transcript.vtt:
+
+**Purpose of regularization:** Germayne introduced regularization as a way to reduce high variance/overfitting. When a model aggressively minimizes a loss function (like MSE) purely to fit the training data, its parameters (betas/weights) can become extreme and the model becomes overly complex. Regularization adds an extra term to the loss function so the model can't just chase the lowest error at any cost — it also has to keep the parameters in check.
+
+**The general mechanism:** Both L1 and L2 work by adding a penalty term to the mean squared error, scaled by a strength parameter (he called it alpha). If alpha = 0, there's no regularization at all (it just reduces to plain MSE); as alpha increases, the model is forced to pay more attention to keeping the parameters small, not just minimizing error.
+
+**L1 (Lasso):**
+- Adds the absolute value of the coefficients (betas) to the loss function.
+- Creates an incentive for the model to actually drive some coefficients all the way to **zero**, effectively removing those variables ("dropping" them).
+- This produces a **sparse model** — useful for feature selection, e.g., going from 77 variables down to a much smaller set when many aren't helpful.
+- Intuition: "the model has an incentive to zero out some of the coefficients, so that I might have a simpler model."
+
+**L2 (Ridge):**
+- Adds the squared value of the coefficients to the loss function.
+- Is "not so aggressive" than L1 — it doesn't try to eliminate variables. Instead, it shrinks coefficients to be **as small as possible but not exactly zero**.
+- Intuition: keeps the beta/weight width small without fully cancelling out any variable.
+
+**Combining both:** He noted the two can be combined together (referencing ElasticNet), summing the L1 and L2 penalty terms, each with its own strength parameter (alpha and rho).
+
+**Generalization note:** He emphasized this same math applies beyond linear regression — including deep learning, where the parameters are called "weights" (W) instead of betas — and that in sklearn, Ridge, Lasso, and ElasticNet all exist as separate models/parameters to tune. He also cautioned that regularization generally improves generalization, but won't help if the underlying data itself is bad or insufficient (since that's a bias problem, not a variance problem).

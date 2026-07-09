@@ -1,0 +1,21 @@
+Here's a summary of what Shumin Lai (NTU) said about K-Nearest Neighbors (KNN) in GMT20260409-102728_Recording.transcript.vtt:
+
+**What KNN is:**
+- Described as a "lazy model" — you're not actually training anything in the traditional sense. Instead, the training data itself effectively *is* the model.
+- KNN can be used for **both regression and classification**.
+
+**How it works:**
+- **K** is a hyperparameter you choose (example used: K = 8).
+- For a new incoming data point, the algorithm finds its K closest existing data points, then predicts based on those neighbors:
+  - For **classification**, it takes the **majority class** among the K neighbors (e.g., if all 8 nearest points are "red," the new point is classified as red).
+  - For **regression**, it takes the **average or median** value of the K neighbors.
+- Analogy used: "birds of a feather flock together" — a data point's prediction is driven by what its nearest neighbors look like.
+
+**How "nearest" is determined — distance metrics:**
+- Distance is calculated using a **distance metric**, most commonly **Euclidean distance**.
+- Euclidean distance mechanics (using a housing price example with square footage): take the difference between the new data point's value and each training data point's value, square it, sum those squared differences, then take the square root.
+- This distance is calculated between the new point and every point in the dataset; the K points with the smallest distance are selected as the "nearest neighbors."
+- She noted Euclidean distance is just one option — other distance metrics exist too, such as **Manhattan distance** and **Minkowski distance**. The choice of distance metric is itself a hyperparameter you can tune, testing which one gives the best result (lowest error for regression, or best accuracy for classification).
+
+**Key takeaway:**
+- For every new data point, KNN calculates its distance to all existing data points, selects the top K closest ones, and derives the prediction (majority vote for classification, or average/median for regression) from those neighbors — with no traditional "training" phase involved.
