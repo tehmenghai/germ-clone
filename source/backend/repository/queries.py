@@ -15,6 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.retrieval import RetrievalResult
 
+# Additive nudge (on the 0..1 cosine similarity scale) applied to candidates from
+# the route-classified module before the LIMIT cutoff. Intentionally a soft boost,
+# not a WHERE filter: a hard filter would strand queries where `route` misclassified
+# the module (see issue #26 TC04) with zero recovery path. The boost only affects
+# ORDER BY / LIMIT selection — the returned `score` column stays pure cosine
+# similarity so RetrievalResult.score keeps its documented meaning.
+_MOD_BOOST = 0.15
+
 _RETRIEVAL_SQL = text("""
 SELECT
     c.id::text                                                              AS id,
@@ -30,7 +38,9 @@ SELECT
 FROM embeddings e
 JOIN chunks   c ON c.id  = e.chunk_id
 JOIN documents d ON d.id = c.document_id
-ORDER BY e.vector <=> CAST(:query_vec AS vector)
+ORDER BY
+    (1 - (e.vector <=> CAST(:query_vec AS vector)))
+    + CASE WHEN :mod != '' AND d.mod = :mod THEN :mod_boost ELSE 0 END DESC
 LIMIT :top_k
 """)
 
@@ -39,20 +49,26 @@ async def retrieve(
     session: AsyncSession,
     query_vec: list[float],
     top_k: int = 5,
+    mod: str | None = None,
 ) -> list[RetrievalResult]:
     """
     Cosine-similarity retrieval over the canonical embeddings table.
 
     Args:
         session:   active async SQLAlchemy session
-        query_vec: 768-dim embedding from gemini-embedding-2 (must match stored vectors)
+        query_vec: 768-dim embedding (must match the provider/model used to store vectors)
         top_k:     number of results to return
+        mod:       route-classified module (e.g. "3.4") to softly prioritize, or
+                   None to rank purely by cosine similarity (used on the retrieve2
+                   reloop pass — see rag/nodes/retrieve.py — to allow escaping a
+                   module that `route` misclassified).
     """
     # Probe all IVFFlat lists — critical for small corpora; acceptable overhead for large ones.
     await session.execute(text("SET LOCAL ivfflat.probes = 100"))
     vec_str = "[" + ",".join(str(v) for v in query_vec) + "]"
     result = await session.execute(
-        _RETRIEVAL_SQL, {"query_vec": vec_str, "top_k": top_k}
+        _RETRIEVAL_SQL,
+        {"query_vec": vec_str, "top_k": top_k, "mod": mod or "", "mod_boost": _MOD_BOOST},
     )
     rows = result.fetchall()
     return [

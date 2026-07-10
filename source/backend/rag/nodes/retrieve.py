@@ -33,7 +33,7 @@ def _mod_summary(chunks: list[RetrievalResult]) -> str:
 async def retrieve1_node(state: GraphState) -> dict:
     vec = await embed_text(state["rewritten_query"])
     async with AsyncSessionLocal() as session:
-        chunks = _apply_source_weights(await retrieve(session, vec, top_k=8))
+        chunks = _apply_source_weights(await retrieve(session, vec, top_k=8, mod=state["mod"]))
     return {
         "chunks": chunks,
         "stage_events": [StageEvent(
@@ -48,6 +48,10 @@ async def retrieve2_node(state: GraphState) -> dict:
     # use reflection output as refined query; fall back to rewritten_query
     refined = state.get("reflect_output") or state["rewritten_query"]
     vec = await embed_text(refined)
+    # No mod boost on the reloop: retrieve1's evaluate1 already failed once with
+    # route's module prioritized, so reloop must be able to escape a module that
+    # `route` misclassified (issue #26 TC04) rather than re-drawing from the same
+    # pool. reflect's refined query is what's meant to steer this pass.
     async with AsyncSessionLocal() as session:
         new_chunks = _apply_source_weights(await retrieve(session, vec, top_k=6))
 
