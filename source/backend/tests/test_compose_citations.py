@@ -1,7 +1,7 @@
 """
 Regression tests for issue #27 — compose fabricates a ## References section.
 
-compose_node's prompt told the model to write "## References" with filenames it was
+compose_generate_node's prompt told the model to write "## References" with filenames it was
 never given (only chunk index/mod/score/text were in its context), so it recalled
 plausible-sounding ML textbooks from training data instead. The inline [N] citations
 were always correct — only the free-text References block was fabricated. The fix:
@@ -50,7 +50,7 @@ async def test_compose_strips_fabricated_references_and_rebuilds_from_real_chunk
     }
 
     with patch("rag.nodes.compose.astream_complete", return_value=_fake_stream([fabricated])):
-        result = await compose_mod.compose_node(state)
+        result = await compose_mod.compose_generate_node(state)
 
     answer_md = result["answer_md"]
     assert "Goodfellow" not in answer_md, "fabricated external citation survived into the final answer"
@@ -80,7 +80,7 @@ async def test_compose_omits_references_section_when_nothing_cited():
     }
 
     with patch("rag.nodes.compose.astream_complete", return_value=_fake_stream(["No citations here."])):
-        result = await compose_mod.compose_node(state)
+        result = await compose_mod.compose_generate_node(state)
 
     assert "## References" not in result["answer_md"]
     assert result["citations"] == []
