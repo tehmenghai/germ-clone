@@ -1,7 +1,21 @@
 """
-compose node — generates the final Markdown answer with inline citations.
-Adapts verbosity to the difficulty level (eli5 / standard / academia).
-Returns: answer_md, citations, sources, stage_events.
+compose — generates the final Markdown answer with inline citations, adapted to
+the difficulty level (eli5 / standard / academia).
+
+Split into two graph steps (issue #29) so evaluate1/evaluate2 can score the real
+generated answer instead of the ReAct trace:
+
+  compose_generate_node — runs the LLM call, builds answer_md/citations/sources.
+      No stage_events of its own — internal to the graph, invisible over SSE.
+      Used twice (graph nodes "compose1" and "compose2" in rag/graph.py): once
+      before evaluate1, and again after retrieve2 if a reloop fires, so eval
+      always scores whatever was actually generated for that attempt.
+
+  compose_emit_node — packages the state's already-generated answer_md/
+      citations/sources into the single public "compose" SSE stage event, run
+      exactly once after the pass/reloop decision is final. This keeps the
+      sacred SSE stage-key contract (docs/contracts.md) unchanged: "compose"
+      still fires exactly once regardless of whether a reloop happened.
 """
 import re
 
@@ -70,7 +84,7 @@ The CHUNKS section is numbered [1], [2], [3], …
 Use clear ## headings and concise paragraphs. Never omit citations."""
 
 
-async def compose_node(state: GraphState) -> dict:
+async def compose_generate_node(state: GraphState) -> dict:
     chunks = state["chunks"]
     tone, format_note = _TONE.get(state["difficulty"], _TONE["standard"])
     chunks_text = "\n\n".join(
@@ -85,7 +99,12 @@ async def compose_node(state: GraphState) -> dict:
 
     token_queue = state.get("token_queue")
 
-    # Stream tokens — each arrives immediately instead of buffering the full response
+    # Stream tokens — each arrives immediately instead of buffering the full response.
+    # Note: on a reloop, this runs twice (compose1 then compose2 — see rag/graph.py) and
+    # both attempts' tokens land on token_queue; the frontend currently discards all
+    # "active" compose tokens and only renders the final "done" event's answer_md
+    # (compose_emit_node, below), so a discarded first attempt's tokens are harmless
+    # today. Revisit if/when live token rendering is built on the frontend.
     full_response = ""
     async for token in astream_complete(
         [
@@ -133,11 +152,17 @@ async def compose_node(state: GraphState) -> dict:
         "answer_md": answer_md,
         "citations": citations,
         "sources": sources,
+    }
+
+
+async def compose_emit_node(state: GraphState) -> dict:
+    """Packages the already-generated answer into the one public 'compose' SSE event."""
+    return {
         "stage_events": [StageEvent(
             stage="compose",
             status="done",
-            answer_md=answer_md,
-            citations=citations or None,
-            sources=sources or None,
+            answer_md=state["answer_md"],
+            citations=state["citations"] or None,
+            sources=state["sources"] or None,
         )],
     }

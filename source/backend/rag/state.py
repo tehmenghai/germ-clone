@@ -22,9 +22,11 @@ class GraphState(TypedDict):
     reflect_output: str                  # reflect
     scores_1: EvalScores | None       # evaluate1
     scores_2: EvalScores | None       # evaluate2
-    answer_md: str                       # compose
-    citations: list[Citation]            # compose
-    sources: list[Source]                # compose
+    citations_compliant: bool            # evaluate1/evaluate2: every [N] in answer_md maps
+                                          # to a real citation (see rag/nodes/evaluate.py)
+    answer_md: str                       # compose1/compose2 (generation) — see rag/graph.py
+    citations: list[Citation]            # compose1/compose2 (generation)
+    sources: list[Source]                # compose1/compose2 (generation)
 
     # ── SSE events (each node appends; operator.add accumulates across nodes) ──
     stage_events: Annotated[list[StageEvent], operator.add]

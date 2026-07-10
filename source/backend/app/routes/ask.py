@@ -7,8 +7,8 @@ Compose tokens are streamed token-by-token via an asyncio.Queue so the frontend
 receives words as they are generated (no 20-40 s silent wait on Ollama).
 
 Each non-compose node appends to state["stage_events"]; the graph task puts
-("event", StageEvent) tuples into the queue. compose_node puts ("token", str)
-tuples directly. The SSE generator is the sole consumer.
+("event", StageEvent) tuples into the queue. compose_generate_node puts
+("token", str) tuples directly. The SSE generator is the sole consumer.
 """
 import asyncio
 import json
