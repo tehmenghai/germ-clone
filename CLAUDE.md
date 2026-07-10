@@ -75,8 +75,11 @@ Must match the frontend's `PIPE_STAGES` exactly:
 
 ## Inference toggle
 
-Ollama-local (default) / free-cloud only. Paid cloud removed — no runaway-bill surface.
-Toggle drives `GET/POST /settings/inference`.
+Ollama-local by default. `llm/dispatch.py` also wires up Groq/Cerebras/Gemini/OpenRouter —
+inert unless a self-hoster puts their own API key in `.env`, and only reachable at all behind
+the passphrase gate + `/ask` rate limit (ADR-0005, issue #28), which is the actual
+runaway-bill control, not code removal. Toggle drives `GET/POST /settings/inference`, itself
+gated behind the passphrase session.
 
 ## Access
 

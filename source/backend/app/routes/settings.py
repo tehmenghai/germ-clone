@@ -6,12 +6,13 @@ GET/POST /settings/pipeline — reads and writes the active pipeline orchestrato
 import os
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.auth import require_session
 from llm import config, embedding_config
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"], dependencies=[Depends(require_session)])
 
 PipelineModeLiteral = Literal["langgraph", "langflow"]
 

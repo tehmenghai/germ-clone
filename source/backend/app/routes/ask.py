@@ -15,9 +15,11 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.auth import require_session
+from app.rate_limit import rate_limit_ask
 from rag.graph import build_graph
 from schemas.events import PIPE_STAGES, StageEvent
 from streaming.emitter import emit_event
@@ -29,7 +31,7 @@ Difficulty = Literal["eli5", "standard", "academia"]
 _graph = build_graph()
 
 
-@router.get("/ask")
+@router.get("/ask", dependencies=[Depends(require_session), Depends(rate_limit_ask)])
 async def ask(
     q: str,
     profile_id: str,
