@@ -4,10 +4,12 @@ Ben will wire real Neon persistence in Phase 2 when the user schema lands.
 """
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/profiles", tags=["profiles"])
+from app.auth import require_session
+
+router = APIRouter(prefix="/profiles", tags=["profiles"], dependencies=[Depends(require_session)])
 
 _profiles: list[dict[str, str]] = [
     {"id": "00000000-0000-0000-0000-000000000001", "name": "Neo"},

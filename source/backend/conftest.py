@@ -94,6 +94,18 @@ def reset_llm_state():
 
 
 @pytest.fixture(autouse=True)
+def reset_auth_and_rate_limit_state():
+    """Reset the passphrase-gate and /ask rate limiter between tests (issue #28)."""
+    from app import auth, rate_limit
+
+    auth.set_required(False)
+    rate_limit.reset()
+    yield
+    auth.set_required(False)
+    rate_limit.reset()
+
+
+@pytest.fixture(autouse=True)
 def mock_external_io():
     """Replace _graph.astream with a deterministic stub — no network or DB I/O."""
     with patch("app.routes.ask._graph") as mock_graph:
