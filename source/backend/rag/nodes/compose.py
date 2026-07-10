@@ -57,9 +57,10 @@ The CHUNKS section is numbered [1], [2], [3], …
 - Place a citation bracket immediately after EVERY equation that comes from a chunk: $$x_{{\\text{{next}}}} = x_{{\\text{{curr}}}} - \\alpha \\frac{{df}}{{dx}}$$ [1]
 - Do NOT write a sentence or display an equation without a citation if the fact came from a chunk.
 - If a claim synthesises multiple chunks, cite all of them: "...reduces the loss [1][3]."
-
-End your answer with a ## References section listing only the chunks you cited, \
-in the format: [1] filename, [2] filename, …
+- Do NOT write your own "## References" or "Sources" section. You were not given the chunks'
+  filenames, so anything you write there would be fabricated. The application appends the
+  real reference list automatically from the chunks you cited — just stop after your last
+  body paragraph.
 
 ## Audience and tone
 {tone}
@@ -98,6 +99,14 @@ async def compose_node(state: GraphState) -> dict:
 
     answer_md = full_response.strip()
 
+    # Strip any References/Sources section the model wrote anyway despite the prompt
+    # instruction above — it was never given filenames, so anything there is fabricated
+    # (see issue #27). The real list is rebuilt below from `citations`, which is derived
+    # from the actually-retrieved chunks, not model recall.
+    answer_md = re.sub(
+        r"\n#{1,3}\s*(References|Sources)\b.*", "", answer_md, flags=re.IGNORECASE | re.DOTALL
+    ).rstrip()
+
     # Build citations from [N] references found in the answer
     cited_ns = sorted({int(n) for n in re.findall(r"\[(\d+)\]", answer_md)})
     citations: list[Citation] = []
@@ -112,6 +121,13 @@ async def compose_node(state: GraphState) -> dict:
                 text=c.text,
             ))
             sources.append(Source(id=n, score=c.score))
+
+    if citations:
+        refs = "\n".join(
+            f"[{c.id}] {c.file}" + (f" (module {c.mod})" if c.mod else "")
+            for c in citations
+        )
+        answer_md = f"{answer_md}\n\n## References\n{refs}"
 
     return {
         "answer_md": answer_md,
