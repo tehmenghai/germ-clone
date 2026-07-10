@@ -23,7 +23,7 @@ re-embed:
 - Completions already route to **Groq** via the free-cloud toggle (`llm/dispatch.py`,
   ADR-0001).
 - Embeddings already default to **Gemini `gemini-embedding-2`** at **output dimension 768**
-  (`embedding_config.py`, `ingestion_config_BEN0601.yaml`), which matches the existing
+  (`embedding_config.py`, `ingestion_config.yaml`), which matches the existing
   `vector(768)` pgvector column.
 
 So a deployed instance needs **no Ollama**, no GPU, and no corpus re-embedding.

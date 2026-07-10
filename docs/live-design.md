@@ -83,6 +83,11 @@ Corpus was re-indexed with nomic-embed-text on 2026-06-14 after the Google API k
 The `.env` path is anchored in `llm/config.py` and `llm/embedding_config.py` using `Path(__file__).parents[1]`
 so the correct `.env` is always loaded regardless of working directory.
 
+Note: `ingestion/` scripts (`embed_google.py` and callers) call the Gemini API directly for
+chunk embedding at ingest time, bypassing `llm/`. This is not a violation of ADR-0001 — that
+ADR scopes app-local LiteLLM dispatch to the runtime request path, not one-off ingestion
+tooling — but is called out here so it doesn't read as drift.
+
 ---
 
 ## Pipeline contract (SSE event shapes)

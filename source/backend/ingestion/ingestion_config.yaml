@@ -1,0 +1,28 @@
+project:
+  owner: "Ben"
+
+paths:
+  raw_dir: "data_01_raw/raw"
+  marker_output_dir: "data_01_raw/marker_output"
+  processed_dir: "data_01_raw/processed"
+  chunks_dir: "data_01_raw/chunks"
+  logs_dir: "data_01_raw/logs"
+
+marker:
+  output_format: "markdown"
+  use_llm: false
+
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 200
+  preserve_headings: true
+
+embedding:
+  provider: "google_ai_studio"
+  model: "gemini-embedding-2"
+  output_dimensionality: 768
+  document_prefix: "Represent this document chunk for retrieval: "
+  query_prefix: "Represent this question for retrieving relevant document chunks: "
+
+retrieval:
+  top_k: 5

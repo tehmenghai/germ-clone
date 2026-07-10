@@ -1,0 +1,25 @@
+19:42:49  INFO     === PDF extraction started (PyMuPDF) ===
+19:42:49  INFO     Found 11 PDF(s)
+19:42:49  INFO     Extracting : 3.1 - Probability and Statistics.pdf
+19:42:49  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.1 - Probability and Statistics/3.1 - Probability and Statistics.md  (10,772 chars)
+19:42:49  INFO     Extracting : 3.10 - NLP Advanced.pdf
+19:42:50  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.10 - NLP Advanced/3.10 - NLP Advanced.md  (18,524 chars)
+19:42:50  INFO     Extracting : 3.2a - Introduction to Machine Learning.pdf
+19:42:50  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.2a - Introduction to Machine Learning/3.2a - Introduction to Machine Learning.md  (8,734 chars)
+19:42:50  INFO     Extracting : 3.2b - Supervised Learning Algorithms.pdf
+19:42:50  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.2b - Supervised Learning Algorithms/3.2b - Supervised Learning Algorithms.md  (4,651 chars)
+19:42:50  INFO     Extracting : 3.3 - Supervised Learning 2_annoations.pdf
+19:42:54  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.3 - Supervised Learning 2_annoations/3.3 - Supervised Learning 2_annoations.md  (23,894 chars)
+19:42:54  INFO     Extracting : 3.4 - Supervised Learning Advanced.pdf
+19:42:55  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.4 - Supervised Learning Advanced/3.4 - Supervised Learning Advanced.md  (9,433 chars)
+19:42:55  INFO     Extracting : 3.5 - Unsupervised Learning.pdf
+19:42:55  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.5 - Unsupervised Learning/3.5 - Unsupervised Learning.md  (16,515 chars)
+19:42:55  INFO     Extracting : 3.6 - Time Series Data & Forecasting (1).pdf
+19:42:56  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.6 - Time Series Data & Forecasting (1)/3.6 - Time Series Data & Forecasting (1).md  (17,756 chars)
+19:42:56  INFO     Extracting : 3.7 - Neural Network and Deep Learning_annotated.pdf
+19:43:00  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.7 - Neural Network and Deep Learning_annotated/3.7 - Neural Network and Deep Learning_annotated.md  (23,687 chars)
+19:43:00  INFO     Extracting : 3.8 - Computer Vision.pdf
+19:43:00  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.8 - Computer Vision/3.8 - Computer Vision.md  (25,404 chars)
+19:43:00  INFO     Extracting : 3.9 - NLP.pdf
+19:43:01  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.9 - NLP/3.9 - NLP.md  (14,656 chars)
+19:43:01  INFO     === Done: 11 succeeded, 0 failed ===

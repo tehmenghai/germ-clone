@@ -1,0 +1,16 @@
+{
+  "module": "3.4",
+  "source_file": "3.4 - Supervised Learning Advanced_Recording.transcript.vtt",
+  "lesson_title": "Supervised Learning Advanced",
+  "vtt_relative": "data_01_raw/raw/3.4 - Supervised Learning Advanced_Recording.transcript.vtt",
+  "slide_md_relatives": [
+    "data_01_raw/marker_output/3.4 - Supervised Learning Advanced/3.4 - Supervised Learning Advanced.md"
+  ],
+  "agent_skill_relative": "sandbox/ben/docs_03_transcripts/AGENT_SKILL_TRANSCRIPT_3.4.md",
+  "parsed_output_relative": "data_03_transcripts/parsed_vtt_3.4.jsonl",
+  "chunks_output_relative": "data_03_transcripts/chunks_transcript_3.4.jsonl",
+  "sample_output_relative": "data_03_transcripts/sample_chunks_transcript_3.4.jsonl",
+  "lecture_start_sec": 6516.0,
+  "teaching_speakers": ["germayne", "Soon | NTU"],
+  "notebook_periods": []
+}

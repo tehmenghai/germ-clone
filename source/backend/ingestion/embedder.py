@@ -32,7 +32,7 @@ async def _embed_ollama(text: str, model: str) -> list[float]:
 
 
 async def _embed_google(text: str, model: str) -> list[float]:
-    from ingestion.embed_google_BEN0601 import embed_document
+    from ingestion.embed_google import embed_document
     return await asyncio.to_thread(embed_document, text, model=model)
 
 

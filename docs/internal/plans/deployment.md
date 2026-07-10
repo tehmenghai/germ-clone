@@ -22,7 +22,7 @@ These come straight from existing code/ADRs and are **not** open for the deploy 
 | Frontend | Next.js → **Vercel free tier** | live-design §Deployment target |
 | DB | **Neon Postgres + pgvector**, already cloud, free tier | ADR-0003 |
 | Chat inference (deployed) | **Free-cloud toggle** (Groq `llama-3.1-8b-instant`) | ADR-0001; `llm/dispatch.py` |
-| Embeddings (deployed) | **Gemini `gemini-embedding-2`, output dim 768** | `embedding_config.py` default; `ingestion_config_BEN0601.yaml` |
+| Embeddings (deployed) | **Gemini `gemini-embedding-2`, output dim 768** | `embedding_config.py` default; `ingestion_config.yaml` |
 | Access | **Shared passphrase gate**, active on deploy | ADR-0005 |
 
 **Key finding (de-risks the whole plan):** the deployed instance does **not** need Ollama.

@@ -1,0 +1,18 @@
+{
+  "module": "3.7",
+  "source_file": "3.7 - Neural Network and Deep Learning_annotated_Recording.transcript.vtt",
+  "lesson_title": "Neural Network and Deep Learning",
+  "vtt_relative": "data_01_raw/raw/3.7 - Neural Network and Deep Learning_annotated_Recording.transcript.vtt",
+  "slide_md_relatives": [
+    "data_01_raw/marker_output/3.7 - Neural Network and Deep Learning_annotated/3.7 - Neural Network and Deep Learning_annotated.md"
+  ],
+  "agent_skill_relative": "sandbox/ben/docs_03_transcripts/AGENT_SKILL_TRANSCRIPT_3.7.md",
+  "parsed_output_relative": "data_03_transcripts/parsed_vtt_3.7.jsonl",
+  "chunks_output_relative": "data_03_transcripts/chunks_transcript_3.7.jsonl",
+  "sample_output_relative": "data_03_transcripts/sample_chunks_transcript_3.7.jsonl",
+  "lecture_start_sec": 1347.0,
+  "teaching_speakers": ["germayne", "Soon | NTU"],
+  "notebook_periods": [
+    [8622, 11431]
+  ]
+}

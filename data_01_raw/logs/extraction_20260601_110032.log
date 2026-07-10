@@ -1,0 +1,7 @@
+11:00:32  INFO     === PDF extraction started (PyMuPDF) ===
+11:00:32  INFO     Found 2 PDF(s)
+11:00:32  INFO     Extracting : 3.3 - Supervised Learning 2_annoations.pdf
+11:00:36  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.3 - Supervised Learning 2_annoations/3.3 - Supervised Learning 2_annoations.md  (23,894 chars)
+11:00:36  INFO     Extracting : 3.7 - Neural Network and Deep Learning_annotated.pdf
+11:00:41  INFO       [OK]  data_BEN0601/marker_output_BEN0601/3.7 - Neural Network and Deep Learning_annotated/3.7 - Neural Network and Deep Learning_annotated.md  (23,687 chars)
+11:00:41  INFO     === Done: 2 succeeded, 0 failed ===
