@@ -22,10 +22,6 @@ source/frontend/.env.*
 # Eval artefacts
 evaluation/results/
 
-# Design handoff — generated/binary artefacts (source files tracked)
-.thumbnail
-"Germayne Clone - ML Tutor.html"
-
 # Local dev screenshots
 screenshots/
 
