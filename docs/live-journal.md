@@ -63,3 +63,66 @@ anchors to `Path(__file__).parents[1] / ".env"` in both `llm/config.py` and
 
 **Housekeeping:** `source/frontend/tsconfig.tsbuildinfo` removed from git tracking (was committed
 despite being gitignored).
+
+---
+
+## 2026-07-13 — QA regression retest confirms #26/#27/#29 fixes; new eval-scoring defect found (#39)
+
+**Event:** Pulled latest `main` (merges for #38/#29 evaluate-real-answer, #36/#28 auth+rate-limit,
+#35/#27 compose-citation-fabrication, #26 route→retrieval module wiring, CI ruff fix), then ran a
+full e2e verification and a targeted regression re-run of Hueyling's 5-case QA doc
+(`docs/internal/qa/hueyling/qna-test-cases.md`) against free-tier cloud first, local Ollama second,
+per standing project preference (cloud-first, Ollama fallback only if necessary).
+
+**Environment note:** `itsdangerous` was declared in `requirements.txt` (added by the #28 auth
+work) but not installed in the existing dev `.venv`, because `launch.sh` only runs
+`uv pip install` on first venv creation. Backend crashed on startup until installed manually.
+Flagged as a latent footgun for any dev pulling this merge onto an existing `.venv` — worth a
+`launch.sh` fix (always run the idempotent install) if it recurs.
+
+**Regression results — TC01 through TC04 (Cerebras, `gpt-oss-120b`): all of Hueyling's documented
+defects confirmed fixed:**
+- TC01/TC02/TC03/TC04: route no longer misclassifies (TC02 was 3.1→3.3 wrong, TC04 was
+  3.5→3.2/k-means confusion wrong — both now correct); retrieval now surfaces the routed module in
+  every case (previously zero chunks from the correct module in 3 of 4 cases); TC02's five
+  fabricated external-textbook citations are gone (all references now point at real corpus files);
+  TC04's zero-citation composition and its factual error ("KNN is a clustering algorithm") are both
+  gone, replaced with 3 real citations and a correct classification framing.
+- Root fix: `172c726` (fix(rag): wire route's module classification into retrieval, closes #26) —
+  a soft +0.15 cosine-score boost for the route-classified module on `retrieve1` only (intentionally
+  omitted on the `retrieve2` reloop so a misrouted query can still escape), plus a route-prompt
+  disambiguation for the KNN/k-means "k" token collision.
+
+**New defect found and filed — TC05 provider-dependent evaluate scoring (issue #39, `area:rag`,
+assigned Meng Hai):** re-running TC05 ("What does the learning rate do in gradient descent?") 6
+times (4× Cerebras, 1× Ollama/llama3.2, 1× Groq/llama-3.1-8b-instant) showed a consistent split:
+retrieval is equally diffuse on every provider (never cleanly concentrated on module 3.7), and the
+composed answer is correct and well-cited in every single run — but Cerebras's judge scored
+faithfulness 0.20–0.40 in 4/4 runs and reloop'd (final scores 23–63%), while Groq's judge scored
+1.00 and passed clean on its one run (93%). Verdict: **not** a regression of the #26 fix (retrieval
+diffuseness is identical on the provider that scores it fine) — the discriminating variable is the
+evaluate/judge layer's behavior specifically on Cerebras (`gpt-oss-120b` as judge). Hueyling's
+original TC05 baseline passed cleanly pre-fix (f83/r85/c78), so this pattern is new since `172c726`
+even though the fix itself isn't the implicated code path.
+
+**Ollama pass:** only TC01 completed — took ~65 minutes end-to-end on CPU-only `llama3.2` (route
+alone ~4 min; evaluate/compose stages individually stalled 5–10+ min). Route itself misclassified
+(3.9 instead of 3.3) and evaluate scores were internally inconsistent (0/0/0.90 then 0.40/0.30/0),
+read as a model-capability limitation of the small local model rather than evidence against the
+fix — the same retrieval code path retrieved correctly on Cerebras for adjacent questions. TC02–05
+were not run locally; local-mode latency remains impractical for interactive regression testing at
+this scale, matching and exceeding Hueyling's own observation #4.
+
+**General observations retest:** Hueyling's observation #1 (free-cloud providers hit rate limits
+almost immediately) did not reproduce on Cerebras or Groq during this session (Gemini/OpenRouter
+not retested). Observations #3 (difficulty-switch hang) not independently re-verified this pass.
+
+**Docs updated:** `docs/internal/qa/hueyling/qna-test-cases.md` — appended a dated retest section
+(commit `7179dff`) rather than editing Hueyling's original findings, preserving the historical
+record while documenting current status per test case.
+
+**Next:** Meng Hai to investigate #39 (log raw judge JSON from Cerebras vs Groq for the same
+query/chunks/answer triple to isolate whether it's a stricter-model behavior or a
+parsing/formatting quirk). TC04's residual note (module 3.2 content not directly surfacing in
+`retrieve1` despite correct final citations) may be worth a corpus/embedding-coverage look, not
+filed as an issue yet — low severity, no defect reproduced from it.
