@@ -196,3 +196,81 @@ citations** that don't exist in this app's corpus at all.
    TERM-BY-TERM → CONSEQUENCE → WORKED EXAMPLE → REFERENCES structure).
 
 **Pass/Fail:** Pass
+
+---
+
+## Retest — 2026-07-13 (post fix for #26, #27, #29)
+
+**Tester:** Claude (on englikhong's behalf), free-tier cloud first per instruction, Ollama used only where noted.
+**Trigger:** confirming whether `172c726` (fix(rag): wire route's module classification into retrieval, fixes #26) resolves the wrong-module routing/retrieval defects documented above, plus the citation-fabrication fix (#27) and evaluate-scores-real-answer fix (#29).
+
+### Summary verdict
+
+All defects TC01–TC04 documented above are **fixed** on free-tier cloud (Cerebras, `gpt-oss-120b`). Route no longer misclassifies TC02 (3.1→3.3) or TC04 (3.5→3.2); retrieval now surfaces the correct module in every case; TC02's fabricated external citations are gone (all references now point at real corpus files); TC04's zero-citation and "KNN is a clustering algorithm" factual error are both gone. TC05 surfaced a **new, separate, confirmed** provider-specific defect — filed as [issue #39](https://github.com/englikhong/germ-clone/issues/39), assigned to Meng Hai (`area:rag`).
+
+General observation #1 (immediate rate-limiting on free cloud) did not reproduce on Cerebras or Groq during this retest.
+
+### TC01 — confusion-matrix retest (Cerebras)
+
+- `route` → module 3.3 (unchanged, was already correct at baseline)
+- `retrieve1` → 8 chunks, **modules 3.3, 3.4** (baseline: zero from 3.3) — module-boost fix confirmed working
+- `evaluate1` → faithful 0.60/relevant 0.90/complete 0.95 → **PASS** (mean 0.82), no reloop needed
+- References: 2 real citations, both module 3.3 PDF — no fabrication
+- **Verdict:** retrieval module-mix defect **resolved**. Faithfulness unchanged at 60% vs baseline — a residual, separate issue, not a regression.
+
+### TC02 — bias-variance retest (Cerebras)
+
+- `route` → module 3.3 (**fixed** — baseline was 3.1, wrong)
+- `retrieve1` → 8 chunks, **modules 3.2, 3.3, 3.4, 3.7, 3.8** (baseline: all 3.7/3.8 only)
+- `evaluate1` → faithful 0.90/relevant 1.00/complete 1.00 → **PASS** (mean 0.97), no reloop needed
+- References: 4 real citations — 3.7 PDF, 3.3 PDF, 3.8 PDF, 3.2a VTT. **No fabricated external textbook citations** (baseline's worst defect on this TC)
+- Key Equation in the answer matches the bias-variance decomposition shown in the Math tab
+- **Verdict:** route misclassification **fixed**. Wrong-module retrieval **fixed**. Citation fabrication **fixed**.
+
+### TC03 — regularization retest (Cerebras)
+
+- `route` → module 3.4 (unchanged, correct)
+- `retrieve1` → 8 chunks, **modules 3.3, 3.4** (baseline: all 3.7/3.8, zero 3.4)
+- `evaluate1` → faithful 0.85/relevant 1.00/complete 0.95 → **PASS** (mean 0.93), no reloop needed
+- Answer shows the **correct L1 (Lasso) and L2 (Ridge) penalty equations**, matching the Math/Visualize tab topic (baseline showed the gradient-descent equation instead)
+- References: 2 real citations, both module 3.4 PDF — no fabrication
+- **Verdict:** wrong-module retrieval **fixed**. Wrong-equation-in-answer defect **fixed**.
+
+### TC04 — knn retest (Cerebras) — primary target of the #26 fix
+
+- `route` → module 3.2 (**fixed** — baseline was 3.5/k-means confusion; this is exactly the disambiguation `route.py` prompt change in `172c726` targets)
+- `retrieve1` → 8 chunks, modules 3.3, 3.4, 3.5, 3.7 (module 3.2 itself still not directly retrieved — see residual note below)
+- `evaluate1` → faithful 0.80/relevant 0.90/complete 0.85 → **PASS** (mean 0.85), no reloop needed
+- References: **3 real citations** — 3.4 PDF, 3.7 PDF, 3.4 transcript VTT (baseline: **zero citations**, "⌥ 0 sources")
+- Answer correctly frames KNN as a classification algorithm tuned via grid-search/cross-validation. **No factual error** calling KNN "a clustering algorithm" (baseline's worst defect)
+- KEY EQUATION is a real cross-validation-error formula, not baseline's tautological `K = k`
+- **Verdict:** route k/k-means confusion **fixed**. Zero-citation defect **fixed**. Factual error **fixed**. Tautological equation **fixed**.
+- **Residual, not a regression of a documented defect:** `retrieve1`'s chunk list doesn't explicitly surface module 3.2 content even though the final citations are accurate (3.4/3.7). Corpus/embedding coverage for module 3.2 specifically may be worth a follow-up look.
+
+### TC05 — gradient-descent retest — **new defect found, filed as issue #39**
+
+Ran 6 times total across this retest to confirm reproducibility before filing: 4× Cerebras, 1× Ollama (llama3.2), 1× Groq (llama-3.1-8b-instant).
+
+- `route` → module 3.7 every time (correct, unchanged from baseline)
+- `retrieve1` → diffuse mix every time regardless of provider (typically modules 3.2/3.7/3.8/3.10, sometimes +3.4/3.6) — never cleanly concentrated on 3.7
+- **The composed answer was correct in every single run** — right update rule, correct worked numeric example, one accurate citation to the real 3.7 PDF, no fabrication, no factual errors (manually inspected each time)
+- **But the evaluate score is provider-dependent:**
+
+  | Run | Provider (judge model) | evaluate1 f/r/c | Final score |
+  |---|---|---|---|
+  | 1 | Cerebras (gpt-oss-120b) | 0.20/0.40/0.30 (reloop) | 53% |
+  | 2 | Ollama (llama3.2) | 0.00/0.00/0.90 → 0.40/0.30/0.00 (reloop) | 23% |
+  | 3 | Cerebras, fresh session | 0.30/0.60/0.90 (reloop) | 23% |
+  | 4 | Cerebras, fresh session | 0.30/0.80/0.90 (reloop) | 63% |
+  | 5 | **Groq**, fresh session | **1.00/1.00/0.80 (no reloop)** | **93% PASS** |
+
+  4/4 Cerebras runs score faithfulness in the 0.20–0.40 band and reloop (reloop never recovers — `retrieve2` pulls chunks from *other* modules, e.g. 3.1/3.3, rather than narrowing onto 3.7, and evaluate2 sometimes scores worse than evaluate1). The 1 Groq run scores faithfulness 1.00 and passes on the first try, on an equally diffuse chunk set.
+- **Verdict:** this is **not** a regression of the #26 fix — retrieval diffuseness is identical on Groq, which still scores it fine, so the discriminating variable is the evaluate judge model's behaviour, not retrieval. Baseline (this doc, above) passed cleanly at f83/r85/c78 pre-fix, so the low-scoring pattern on Cerebras is new since `172c726`, though the fix itself isn't the likely cause (retrieval is equally messy on Groq).
+- **Filed:** [github.com/englikhong/germ-clone/issues/39](https://github.com/englikhong/germ-clone/issues/39) — `area:rag`, assigned `tehmenghai` (Meng Hai).
+
+### General observations retest
+
+1. **Rate limiting (#1 above):** not reproduced. Ran the equivalent of 5 full TC pipelines (each firing 3× `/ask` for difficulty prefetch, plus reloops) back-to-back on Cerebras with zero rate-limit errors in the backend log. Groq also rate-limit-free across its one run. Not exhaustively retested for Gemini/OpenRouter specifically.
+2. **Difficulty-switch hang (#3):** not independently re-verified this session — out of scope for this retest pass.
+3. **Compose/eval latency on Ollama (#4):** reproduced and then some. A single TC01 run on Ollama (llama3.2, CPU-only) took **~65 minutes** end-to-end — route alone took ~4 minutes, and evaluate1/evaluate2/compose each stalled 5–10+ minutes. Local-mode latency remains impractical for this kind of interactive regression testing; full TC02–05 were not run locally as a result.
+
