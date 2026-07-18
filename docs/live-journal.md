@@ -126,3 +126,30 @@ query/chunks/answer triple to isolate whether it's a stricter-model behavior or 
 parsing/formatting quirk). TC04's residual note (module 3.2 content not directly surfacing in
 `retrieve1` despite correct final citations) may be worth a corpus/embedding-coverage look, not
 filed as an issue yet — low severity, no defect reproduced from it.
+
+---
+
+## 2026-07-18 — [design-drift] live-design.md reconciled against #29 (compose/evaluate reorder)
+
+**Trigger:** Workspace drift gate (`scripts/check-artifact-drift.sh`) flagged
+`live-design.md` (last touched 2026-06-24) as ~7d stale against committed code —
+specifically PR #38 / commit `61c74a9` (2026-07-10, Meng Hai, closes #29), which
+restructured the RAG graph but was never reflected in the design doc.
+
+**What drifted:** `live-design.md`'s architecture-overview ASCII diagram and
+"Pipeline contract" section still described `evaluate1`/`evaluate2` gating directly
+after `reflect`/`retrieve2`, with `compose` running last. The actual graph (since
+#29) runs compose *before* its evaluate gate — `compose1 → evaluate1`, and on
+reloop `compose2 → evaluate2` — so eval scores the real generated answer instead of
+the ReAct trace. Root motivation: a wrong-module (#26) or fabricated (#27) answer
+could previously pass eval because faithfulness/relevance/completeness were judged
+against reasoning scratchpad, not the shipped answer.
+
+**Reconciled:** diagram and pipeline-contract section updated to show
+`compose1`/`compose2` (internal, no SSE) feeding `evaluate1`/`evaluate2`, with the
+public `compose` (emit) node still firing exactly once post-decision — the
+stage-key contract with the frontend is unchanged, this was an internal graph
+reorder. Also documented the citation-compliance mechanical check added in the same
+PR, which can force a reloop independent of the LLM-judged f/r/c mean.
+
+**No code changed** — doc-only reconciliation, scoped to `docs/live-design.md`.

@@ -1,6 +1,6 @@
 # germ//clone — Live Design
 
-_Last updated: 2026-06-24_
+_Last updated: 2026-07-18_
 
 ---
 
@@ -27,9 +27,10 @@ _Last updated: 2026-06-24_
 │  app/main.py (DI wiring, routes)                                      │
 │  ┌──────────────────────────────────────────────────────────────────┐│
 │  │  RAG pipeline (LangGraph)                                        ││
-│  │  route→rewrite→retrieve1→react→reflect→evaluate1                ││
-│  │       └─ if mean(f,r,c)<0.80 → retrieve2→evaluate2 ─┐          ││
-│  │                                                       └→ compose ││
+│  │  route→rewrite→retrieve1→react→reflect→compose1→evaluate1       ││
+│  │       └─ if mean(f,r,c)<0.80 or citations non-compliant          ││
+│  │            → retrieve2→compose2→evaluate2 ─┐                    ││
+│  │                                              └→ compose(emit)→END││
 │  │  streaming/  SSE emitter — stage events + token-by-token compose ││
 │  │  llm/        LiteLLM dispatch (5 backends — see table below)     ││
 │  └──────────────────────────────────────────────────────────────────┘│
@@ -91,6 +92,22 @@ tooling — but is called out here so it doesn't read as drift.
 ---
 
 ## Pipeline contract (SSE event shapes)
+
+**Internal graph vs. public stage-key contract (as of #29, 2026-07-10):** `evaluate1`/
+`evaluate2` originally scored the ReAct trace, not the answer the student actually
+reads — meaning a wrong-module or fabricated answer could pass eval while being judged
+against reasoning scratchpad, not output. The graph now runs compose *before* its
+evaluate gate: `compose1 → evaluate1`, and on reloop `compose2 → evaluate2`
+(`rag/nodes/compose.py: compose_generate_node`, used for both — no stage_events, not
+SSE-visible). The public `compose` node (`compose_emit_node`) still runs exactly once,
+after the pass/reloop decision is final, and is the only node that emits the "compose"
+SSE event — so the stage-key invariant below (and `docs/contracts.md`) is unchanged;
+this is an internal graph restructure, not a contract break.
+
+Reloop is now also forced by a mechanical citation-compliance check (does every `[N]`
+marker in the answer map to a citation `compose` actually built), independent of the
+LLM-judged f/r/c mean — closes a gap where citation markers could survive in the text
+with nothing backing them.
 
 Stage events (in-progress nodes):
 ```jsonc
