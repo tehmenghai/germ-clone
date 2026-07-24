@@ -12,8 +12,8 @@ import os
 import uuid
 from pathlib import Path
 
-import httpx
 import asyncpg
+import httpx
 from dotenv import load_dotenv
 from tqdm import tqdm
 

@@ -443,7 +443,7 @@ def main() -> None:
     write_jsonl(sample_path, all_chunks[:5])
     print(f"[OK]    {sample_path.relative_to(PROJECT_ROOT)}  (first 5 — inspect these)")
 
-    print(f"\n[NEXT]  Run seed_from_llm_chunks.py to embed and load into Neon.")
+    print("\n[NEXT]  Run seed_from_llm_chunks.py to embed and load into Neon.")
 
 
 if __name__ == "__main__":

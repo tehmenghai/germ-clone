@@ -68,7 +68,7 @@ async def set_embedding(body: EmbeddingRequest) -> EmbeddingResponse:
     try:
         embedding_config.set_embedding(body.provider, body.model)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return EmbeddingResponse(
         provider=embedding_config.get_provider(),  # type: ignore[arg-type]
         model=embedding_config.get_model(),
