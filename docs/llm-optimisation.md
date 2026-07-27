@@ -30,12 +30,19 @@ Six LLM surfaces, all routed through `llm/dispatch.py`:
 | Rewrite | `rag/nodes/rewrite.py` | 1 call, short output | Query clarification before retrieval |
 | ReAct | `rag/nodes/react.py` | 1 call, medium output | Think/Act/Observe over retrieved chunks |
 | Reflect | `rag/nodes/reflect.py` | 1 call, ≤1 sentence | Gap detection; drives the retrieve-2 reloop |
-| Compose | `rag/nodes/compose.py` | 1 **streamed** call, long output | Final answer; the only `astream_complete` surface |
-| Evaluate | `rag/evaluator.py` | 1 call, small JSON | f/r/c scoring; degrades to `(0.5, 0.5, 0.5)` on parse failure |
+| Compose | `rag/nodes/compose.py` | 1 **streamed** call, long output | Final answer; the only `astream_complete` surface. Runs as `compose1`/`compose2` — generation happens *before* its evaluate gate |
+| Evaluate | `rag/evaluator.py`, driven by `rag/nodes/evaluate.py` | 1 call, small JSON | f/r/c scoring; degrades to `(0.5, 0.5, 0.5)` on parse failure. The node wraps it with a non-LLM citation-compliance check |
 
-A single question costs **5–7 LLM calls** depending on whether Reflect triggers the reloop.
-Reflect is therefore the highest-leverage surface for latency: it alone decides whether the
-pipeline pays for a second retrieval plus another ReAct/Compose pass.
+A single question costs **6 LLM calls on the pass path** (route, rewrite, react, reflect,
+compose1, evaluate1) and **8 on the reloop path** (+ compose2, evaluate2). Note that because
+issue #29 moved generation ahead of the gate, a reloop pays for a **second full compose** —
+the long-output surface — not just a second retrieval. That makes the reloop considerably
+more expensive than the stage list suggests.
+
+Two things follow. Reflect is the highest-leverage latency surface: its one-sentence output
+decides whether the pipeline pays that second compose. And the 0.80 reloop threshold in
+`evaluate.py` is a direct cost lever — it is currently an unmeasured constant, which gap 3
+below is what would let anyone tune with evidence.
 
 ## Context budgeting
 
