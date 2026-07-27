@@ -28,7 +28,7 @@ jobs:
         run: ruff check source/backend/
 
       - name: Test (pytest)
-        run: pytest source/backend/tests/ -v
+        run: pytest tests/ -v
         working-directory: source/backend
 
   frontend:
