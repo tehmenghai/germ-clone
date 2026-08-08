@@ -72,6 +72,37 @@ def test_pass_or_reloop_passes_when_compliant_and_scores_high():
     assert _pass_or_reloop(state) == "pass"
 
 
+async def test_score_grades_with_pinned_eval_backend_not_session_backend():
+    """Regression for #39 — same answer must get the same grade regardless of which
+    model the student's session is toggled to. score() must always pass the fixed
+    config.eval_backend (not config.backend) and temperature=0 through to complete()."""
+    from llm import config
+    from rag.evaluator import score
+
+    captured = {}
+
+    async def fake_complete(messages, **kwargs):
+        captured["backend"] = kwargs.get("backend")
+        captured["temperature"] = kwargs.get("temperature")
+        return '{"f": 0.9, "r": 0.9, "c": 0.9}'
+
+    original_backend = config.get_backend()
+    original_eval_backend = config.get_eval_backend()
+    try:
+        config.set_backend("cerebras")
+        config.set_eval_backend("ollama")
+        with patch("rag.evaluator.complete", fake_complete):
+            await score("q", [_chunk(1)], "answer")
+    finally:
+        config.set_backend(original_backend)
+        config.set_eval_backend(original_eval_backend)
+
+    assert captured["backend"] == "ollama", (
+        "grading must use the pinned eval backend, not the student session's backend"
+    )
+    assert captured["temperature"] == 0
+
+
 async def _fake_astream(tokens: list[str]):
     for t in tokens:
         yield t

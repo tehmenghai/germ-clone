@@ -126,3 +126,52 @@ query/chunks/answer triple to isolate whether it's a stricter-model behavior or 
 parsing/formatting quirk). TC04's residual note (module 3.2 content not directly surfacing in
 `retrieve1` despite correct final citations) may be worth a corpus/embedding-coverage look, not
 filed as an issue yet — low severity, no defect reproduced from it.
+
+---
+
+## 2026-08-08 — #39 root-caused and fixed: evaluator had no independent grader
+
+**Root cause (not what the issue's own repro suggested):** the earlier hypothesis was that
+`gpt-oss-120b` is a stricter judge than `llama-3.1-8b-instant`, or a provider-specific
+parsing/formatting quirk in `rag/evaluator.py`'s `json.loads()`. Neither was it. Reading
+`llm/dispatch.py` and `llm/config.py` showed `evaluator.score()` calls `complete()` with no
+model of its own — it always grades using `config.get_backend()`, the **same** global toggle
+that decides which model answers the student (`POST /settings/inference`, ADR-0005). There was
+no independent grader at all: whichever backend a session is toggled to both writes the answer
+and judges it. On top of that, `complete()` was never called with `temperature`, so even a single
+fixed model wasn't stable run-to-run — matching the issue's own Cerebras table (f swinging
+0.20/0.30/0.30/0.30, r/c swinging 0.40–0.90 across runs on an identical answer).
+
+**Fix (`llm/config.py`, `llm/dispatch.py`, `rag/evaluator.py`):**
+- New `EVAL_BACKEND` setting (`config.get_eval_backend()`/`set_eval_backend()`), independent of
+  the student-facing `INFERENCE_BACKEND` toggle. Defaults to Ollama-local — no API key needed,
+  keeps eval/CI runs free of cloud dependency.
+- `complete()` gained an optional `backend` override param so a caller can pin a model
+  independent of the session toggle; existing callers unaffected (defaults to `None` →
+  unchanged behavior).
+- `evaluator.score()` now calls `complete(..., backend=config.get_eval_backend(),
+  temperature=0)` — grading is deterministic and decoupled from whatever the student session is
+  set to.
+
+**Verification:** ran `evaluator.score()` 3x against a frozen (query, chunks, answer) triple on
+the pinned Ollama eval backend — identical scores all 3 runs (temperature=0 confirmed
+deterministic). Then toggled the simulated student backend across `groq`/`cerebras`/`ollama` with
+`eval_backend` held at `ollama` — the grade did not move at all across any of the three, confirming
+the decoupling. Added a regression test
+(`tests/test_evaluate_real_answer.py::test_score_grades_with_pinned_eval_backend_not_session_backend`)
+asserting `score()` always passes the pinned eval backend, not `config.get_backend()`. Full
+evaluator test suite (6 tests) and the rest of the backend suite (10 tests, excluding 4 pre-existing
+collection failures from a missing `itsdangerous` package unrelated to this change) pass; `ruff
+check` clean. No live Cerebras key was available in this environment to re-run the original
+6-provider repro end-to-end, but the mechanism fixed (decoupling) happens before any
+provider-specific dispatch code runs, so it isn't provider-dependent.
+
+**Why the issue's own hypothesis was a reasonable dead end:** the observed data (Cerebras
+consistently harsher, Groq consistently lenient) is exactly what you'd see either from a stricter
+judge model *or* from an undifferentiated single-toggle grader — the repro alone couldn't
+distinguish the two without first controlling for the missing `temperature` pin, which is why
+diagnosing before patching (rather than tuning the judge prompt to "agree" with Groq) mattered
+here.
+
+**Not yet done:** commit/push and closing #39 are pending — code changes are made and verified
+locally but not yet committed to the branch.
