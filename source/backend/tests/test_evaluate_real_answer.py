@@ -33,7 +33,7 @@ async def test_evaluate1_scores_answer_md_not_react_output():
 
     async def fake_score(query, chunks, answer):
         captured["answer"] = answer
-        return EvalScores(f=0.9, r=0.9, c=0.9)
+        return EvalScores(f=0.9, r=0.9, c=0.9), False
 
     state = {
         "query": "q",
@@ -101,6 +101,68 @@ async def test_score_grades_with_pinned_eval_backend_not_session_backend():
         "grading must use the pinned eval backend, not the student session's backend"
     )
     assert captured["temperature"] == 0
+
+
+async def test_score_returns_fallback_flag_on_eval_backend_failure():
+    """Regression for #42 — an eval-backend infrastructure failure (model not
+    pulled, connection refused, bad JSON, etc.) must be flagged as a fallback,
+    not returned as an indistinguishable real 0.5/0.5/0.5 grade."""
+    from rag.evaluator import score
+
+    async def fake_complete_raises(messages, **kwargs):
+        raise ConnectionError("eval backend unreachable")
+
+    with patch("rag.evaluator.complete", fake_complete_raises):
+        scores, is_fallback = await score("q", [_chunk(1)], "answer")
+
+    assert is_fallback is True
+    assert (scores.f, scores.r, scores.c) == (0.5, 0.5, 0.5)
+
+
+async def test_score_fallback_flag_false_on_genuine_grade():
+    from rag.evaluator import score
+
+    async def fake_complete_ok(messages, **kwargs):
+        return '{"f": 0.5, "r": 0.5, "c": 0.5}'
+
+    with patch("rag.evaluator.complete", fake_complete_ok):
+        scores, is_fallback = await score("q", [_chunk(1)], "answer")
+
+    assert is_fallback is False
+    assert (scores.f, scores.r, scores.c) == (0.5, 0.5, 0.5)
+
+
+async def test_evaluate1_node_marks_verdict_when_score_is_fallback():
+    """Regression for #42 — evaluate1_node must surface a distinct verdict marker
+    when score() reports a fallback, so the SSE stream/UI don't render a stub
+    score identically to a genuine judged grade."""
+    from rag.nodes import evaluate as evaluate_mod
+
+    async def fake_score(query, chunks, answer):
+        return EvalScores(f=0.5, r=0.5, c=0.5), True
+
+    state = {
+        "query": "q",
+        "chunks": [_chunk(1)],
+        "answer_md": "answer [1]",
+        "citations": [Citation(id=1, mod="3.4", file="file1.pdf", snip="s", score=0.8)],
+    }
+
+    with patch("rag.nodes.evaluate.score", fake_score):
+        result = await evaluate_mod.evaluate1_node(state)
+
+    verdict = result["stage_events"][0].verdict
+    assert "EVAL BACKEND UNAVAILABLE" in verdict
+
+
+async def test_ask_route_attributes_compose2_failure_to_compose_not_evaluate2():
+    """Regression for #41 — a failure inside compose_generate_node on the reloop
+    path (graph node 'compose2') must be attributed to the public 'compose' stage,
+    not misattributed to 'evaluate2' (which was never reached)."""
+    from app.routes import ask as ask_mod
+
+    assert ask_mod._NODE_TO_STAGE["compose2"] == "compose"
+    assert ask_mod._NODE_TO_STAGE["compose1"] == "compose"
 
 
 async def _fake_astream(tokens: list[str]):
