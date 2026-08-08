@@ -129,6 +129,33 @@ filed as an issue yet — low severity, no defect reproduced from it.
 
 ---
 
+## 2026-07-18 — [design-drift] live-design.md reconciled against #29 (compose/evaluate reorder)
+
+**Trigger:** Workspace drift gate (`scripts/check-artifact-drift.sh`) flagged
+`live-design.md` (last touched 2026-06-24) as ~7d stale against committed code —
+specifically PR #38 / commit `61c74a9` (2026-07-10, Meng Hai, closes #29), which
+restructured the RAG graph but was never reflected in the design doc.
+
+**What drifted:** `live-design.md`'s architecture-overview ASCII diagram and
+"Pipeline contract" section still described `evaluate1`/`evaluate2` gating directly
+after `reflect`/`retrieve2`, with `compose` running last. The actual graph (since
+#29) runs compose *before* its evaluate gate — `compose1 → evaluate1`, and on
+reloop `compose2 → evaluate2` — so eval scores the real generated answer instead of
+the ReAct trace. Root motivation: a wrong-module (#26) or fabricated (#27) answer
+could previously pass eval because faithfulness/relevance/completeness were judged
+against reasoning scratchpad, not the shipped answer.
+
+**Reconciled:** diagram and pipeline-contract section updated to show
+`compose1`/`compose2` (internal, no SSE) feeding `evaluate1`/`evaluate2`, with the
+public `compose` (emit) node still firing exactly once post-decision — the
+stage-key contract with the frontend is unchanged, this was an internal graph
+reorder. Also documented the citation-compliance mechanical check added in the same
+PR, which can force a reloop independent of the LLM-judged f/r/c mean.
+
+**No code changed** — doc-only reconciliation, scoped to `docs/live-design.md`.
+
+---
+
 ## 2026-08-08 — #39 root-caused and fixed: evaluator had no independent grader
 
 **Root cause (not what the issue's own repro suggested):** the earlier hypothesis was that
@@ -173,5 +200,21 @@ distinguish the two without first controlling for the missing `temperature` pin,
 diagnosing before patching (rather than tuning the judge prompt to "agree" with Groq) mattered
 here.
 
-**Not yet done:** commit/push and closing #39 are pending — code changes are made and verified
-locally but not yet committed to the branch.
+**Committed and pushed** as `0fb41b3` on `fix/issue-39-eval-backend-decouple` (PR #40),
+closing #39.
+
+**UAT retest (2026-08-08, Claude on englikhong's behalf):** full e2e walk of Hueyling's
+TC01–TC05, free-cloud backends only (Groq/Cerebras). Fix confirmed live — this environment
+had a working `CEREBRAS_API_KEY`, closing the gap the PR's own test plan flagged (author's
+environment lacked one). Reproduced the exact #39 pattern end-to-end: diffuse retrieval →
+low faithfulness on evaluate1 → reloop → pass on evaluate2, with `EVAL_BACKEND` pinned to
+Cerebras while the student toggled between Groq and Cerebras — score tracked answer content,
+not provider. TC01–TC04 regression-clean. Findings: `docs/uat-findings-2026-08-08.md`.
+
+Two pre-existing, unrelated defects surfaced during the walk and were filed separately
+(neither blocked #40's merge):
+- #41 — `compose2` reloop-path errors mislabeled as `evaluate2` in the SSE stream
+  (`app/routes/ask.py`'s stage-attribution heuristic, introduced `b29fb12`)
+- #42 — evaluator's `0.5/0.5/0.5` parse-failure fallback is indistinguishable from a real
+  score; raised in severity by this fix since `EVAL_BACKEND` now defaults to Ollama
+  everywhere, making a not-yet-pulled model a first-run risk

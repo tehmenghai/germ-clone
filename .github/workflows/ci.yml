@@ -28,8 +28,15 @@ jobs:
         run: ruff check source/backend/
 
       - name: Test (pytest)
-        run: pytest source/backend/tests/ -v
+        run: pytest tests/ -v
         working-directory: source/backend
+        env:
+          # repository/database.py reads DATABASE_URL at import time, and
+          # conftest imports it, so collection fails without this. Locally the
+          # value comes from source/backend/.env, which CI has no equivalent of.
+          # The suite never opens a connection — conftest stubs all graph I/O
+          # and disposes the engine — so any well-formed URL will do.
+          DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/ci
 
   frontend:
     name: Frontend — lint

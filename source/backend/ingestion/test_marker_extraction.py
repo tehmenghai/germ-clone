@@ -35,11 +35,12 @@ def main() -> None:
 
     target = pdfs[0]
     print(f"[INFO] PDF found   : {target.name}")
-    print(f"[INFO] Running PyMuPDF extraction...")
+    print("[INFO] Running PyMuPDF extraction...")
 
     # 2. Import and call the extractor directly (no subprocess — no memory spike)
-    from extract_with_marker import extract_pdf
     import logging
+
+    from extract_with_marker import extract_pdf
     logger = logging.getLogger("smoke_test")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
