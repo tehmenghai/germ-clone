@@ -30,7 +30,7 @@ def _citation_compliance_ok(answer_md: str, citations: list[Citation]) -> bool:
 
 
 async def evaluate1_node(state: GraphState) -> dict:
-    scores = await score(state["query"], state["chunks"], state["answer_md"])
+    scores, is_fallback = await score(state["query"], state["chunks"], state["answer_md"])
     compliant = _citation_compliance_ok(state["answer_md"], state["citations"])
     mean = (scores.f + scores.r + scores.c) / 3
     if mean >= 0.80 and compliant:
@@ -39,6 +39,11 @@ async def evaluate1_node(state: GraphState) -> dict:
         verdict = f"BELOW 0.80 ({mean:.2f}) — citation compliance failed, reloop"
     else:
         verdict = f"BELOW 0.80 ({mean:.2f}), reloop"
+    if is_fallback:
+        # issue #42 — flag the stub score as distinct from a genuine judged grade;
+        # frontend already renders anything not starting with "PASS" as non-passing,
+        # and this prefix makes it visually/textually unmistakable in the Agent Trace.
+        verdict = f"EVAL BACKEND UNAVAILABLE — stub score, not a real grade — {verdict}"
     return {
         "scores_1": scores,
         "citations_compliant": compliant,
@@ -52,7 +57,7 @@ async def evaluate1_node(state: GraphState) -> dict:
 
 
 async def evaluate2_node(state: GraphState) -> dict:
-    scores = await score(state["query"], state["chunks"], state["answer_md"])
+    scores, is_fallback = await score(state["query"], state["chunks"], state["answer_md"])
     compliant = _citation_compliance_ok(state["answer_md"], state["citations"])
     mean = (scores.f + scores.r + scores.c) / 3
     if mean >= 0.80 and compliant:
@@ -61,6 +66,8 @@ async def evaluate2_node(state: GraphState) -> dict:
         verdict = f"{mean:.2f} — citation compliance failed, proceeding to compose"
     else:
         verdict = f"{mean:.2f} — proceeding to compose"
+    if is_fallback:
+        verdict = f"EVAL BACKEND UNAVAILABLE — stub score, not a real grade — {verdict}"
     return {
         "scores_2": scores,
         "citations_compliant": compliant,
