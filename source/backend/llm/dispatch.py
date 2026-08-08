@@ -50,9 +50,16 @@ def _cloud_params(backend: str) -> dict[str, Any]:
     raise RuntimeError(f"Unknown cloud backend: {backend!r}")
 
 
-async def complete(messages: list[dict[str, str]], **kwargs: Any) -> str:
-    """Return the assistant text from a chat completion."""
-    backend = config.get_backend()
+async def complete(
+    messages: list[dict[str, str]], backend: str | None = None, **kwargs: Any
+) -> str:
+    """Return the assistant text from a chat completion.
+
+    `backend` overrides the session's inference toggle (config.get_backend()) — used by
+    the evaluator to grade with a fixed backend independent of whichever model the
+    student's session is currently answering with (issue #39).
+    """
+    backend = backend or config.get_backend()
 
     if backend == "ollama":
         response = await litellm.acompletion(
